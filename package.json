@@ -2,7 +2,7 @@
     "name": "pretty-tiny",
     "displayName": "Pretty Tiny",
     "description": "Minify and beautify CSS - Automatic toggle with Pretty mode",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "publisher": "jimjimca",
     "icon": "pretty-tiny.png",
     "repository": {
