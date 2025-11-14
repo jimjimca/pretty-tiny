@@ -1,0 +1,34 @@
+# Change Log
+
+All notable changes to the "Pretty Tiny" extension will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2025-11-14
+
+### Added
+- Initial release of Pretty Tiny
+- CSS minification without external dependencies
+- CSS beautification with configurable indentation
+- Automatic toggle between Pretty and Mini modes
+- Pretty mode with auto-beautify on save
+- Mini mode with optional comment removal
+- Normal mode for manual control only
+- Mode indicator in status bar
+- Keyboard shortcut (`Ctrl+Alt+M` / `Ctrl+Cmd+M`) for quick toggle
+- Support for nested CSS rules (`&:hover`)
+- Support for media queries and nested at-rules
+- Support for keyframes and animations
+- Support for modern CSS features (`:has()`, `:is()`, `:not()`, etc.)
+- Configurable indentation size (default: 4 spaces)
+- Configurable comment removal for minification (default: true)
+- Selection support - works on selected text or entire file
+
+### Configuration
+- `prettyTiny.indentSize` - Number of spaces for indentation
+- `prettyTiny.removeComments` - Remove comments when minifying
+- `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
+
+[Unreleased]: https://github.com/jimjimca/pretty-tiny/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.0

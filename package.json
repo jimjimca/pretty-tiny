@@ -1,0 +1,96 @@
+{
+    "name": "pretty-tiny",
+    "displayName": "Pretty Tiny",
+    "description": "Minify and beautify CSS - Automatic toggle with Pretty mode",
+    "version": "1.0.0",
+    "publisher": "jimjimca",
+    "icon": "pretty-tiny.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jimjimca/pretty-tiny"
+    },
+    "bugs": {
+        "url": "https://github.com/jimjimca/pretty-tiny/issues"
+    },
+    "homepage": "https://github.com/jimjimca/pretty-tiny#readme",
+    "keywords": [
+        "css",
+        "minify",
+        "beautify",
+        "formatter",
+        "minifier",
+        "compress",
+        "pretty",
+        "tiny"
+    ],
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Formatters"
+    ],
+    "license": "MIT",
+    "activationEvents": [
+        "onLanguage:css"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "pretty-tiny.mini",
+                "title": "Pretty Tiny: Minify"
+            },
+            {
+                "command": "pretty-tiny.pretty",
+                "title": "Pretty Tiny: Beautify"
+            },
+            {
+                "command": "pretty-tiny.toggle",
+                "title": "Pretty Tiny: Toggle Pretty/Mini"
+            },
+            {
+                "command": "pretty-tiny.setMode",
+                "title": "Pretty Tiny: Change Mode (Pretty/Mini/Auto)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "pretty-tiny.toggle",
+                "key": "ctrl+alt+m",
+                "mac": "ctrl+cmd+m",
+                "when": "editorTextFocus && editorLangId == css"
+            }
+        ],
+        "configuration": {
+            "title": "Pretty Tiny",
+            "properties": {
+                "prettyTiny.removeComments": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Remove comments when minifying"
+                },
+                "prettyTiny.indentSize": {
+                    "type": "number",
+                    "default": 4,
+                    "description": "Number of spaces for indentation"
+                },
+                "prettyTiny.autoBeautifyOnSave": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically beautify on save when in Pretty mode"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0",
+        "@types/node": "^16.x",
+        "typescript": "^4.4.3"
+    }
+}
