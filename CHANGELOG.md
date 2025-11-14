@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
-[Unreleased]: https://github.com/jimmyhoule/pretty-tiny/compare/v1.0.2...HEAD
-[1.0.2]: https://github.com/jimmyhoule/pretty-tiny/releases/tag/v1.0.2
-[1.0.1]: https://github.com/jimmyhoule/pretty-tiny/releases/tag/v1.0.1
-[1.0.0]: https://github.com/jimmyhoule/pretty-tiny/releases/tag/v1.0.0
+[1.0.5]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.5
+[1.0.2]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.2
+[1.0.1]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.1
+[1.0.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.0
