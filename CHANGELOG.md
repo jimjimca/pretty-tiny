@@ -5,6 +5,18 @@ All notable changes to the "Pretty Tiny" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-11-14
+
+### Fixed
+- Fixed `&` nested selector spacing (e.g., `& .wrap` now stays as-is instead of becoming `&.wrap`)
+- Fixed pseudo-class spacing in nested selectors (e.g., `&:not(:first-child)` now formats correctly)
+- Fixed spacing after opening parenthesis in selectors
+
+## [1.0.1] - 2025-11-14
+
+### Changed
+- Updated README with clearer documentation
+
 ## [1.0.0] - 2025-11-14
 
 ### Added
@@ -30,5 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
-[Unreleased]: https://github.com/jimjimca/pretty-tiny/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.0
+[Unreleased]: https://github.com/jimmyhoule/pretty-tiny/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/jimmyhoule/pretty-tiny/releases/tag/v1.0.2
+[1.0.1]: https://github.com/jimmyhoule/pretty-tiny/releases/tag/v1.0.1
+[1.0.0]: https://github.com/jimmyhoule/pretty-tiny/releases/tag/v1.0.0

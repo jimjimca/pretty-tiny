@@ -300,15 +300,7 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
     while (i < css.length) {
         const char = css[i];
 
-        if (char === '&') {
-            // Nested selector - switch to selector mode
-            inSelector = true;
-            if (result.endsWith('\n')) {
-                result += indent.repeat(indentLevel);
-            }
-            result += char;
-            i++;
-        } else if (char === '@') {
+        if (char === '@') {
             // At-rule
             inSelector = true;
 
@@ -377,15 +369,24 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
                 }
             }
         } else if (char === ':') {
-            if (inSelector) {
-                result += ':';
-            } else {
-                result += ': ';
-            }
-            i++;
-            while (i < css.length && css[i] === ' ') {
+            // Don't add space if we already have one or after newline
+            if (result.endsWith(' ') || result.endsWith('\n')) {
                 i++;
+                continue;
             }
+
+            // In selector mode, don't add space after ( or before :
+            if (inSelector) {
+                const lastChar = result.length > 0 ? result[result.length - 1] : '';
+                // Skip space after opening parenthesis
+                if (lastChar === '(') {
+                    i++;
+                    continue;
+                }
+            }
+
+            result += char;
+            i++;
         } else if (char === ';') {
             result += ';\n';
             i++;
@@ -415,11 +416,8 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
                 i++;
             }
         } else if (char === ' ') {
-            // Check if previous character is & (nesting selector)
-            const lastChar = result.length > 0 ? result[result.length - 1] : '';
-
-            // Don't add space after & or if we already have a space
-            if (lastChar === '&' || result.endsWith(' ') || result.endsWith('\n')) {
+            // Don't add space if we already have one or after newline
+            if (result.endsWith(' ') || result.endsWith('\n')) {
                 i++;
                 continue;
             }
