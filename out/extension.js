@@ -227,50 +227,67 @@ function beautifyCSS(css, indentSize = 4) {
     let result = '';
     let indentLevel = 0;
     const indent = ' '.repeat(indentSize);
-    // Normalize whitespace (but keep comments)
-    css = css.replace(/\s+/g, ' ').trim();
+    let inProperty = false; // Track if we're inside a property declaration
     let i = 0;
-    let inSelector = true;
+    // Helper to skip whitespace
+    function skipWhitespace() {
+        let hadSpace = false;
+        while (i < css.length && /\s/.test(css[i])) {
+            hadSpace = true;
+            i++;
+        }
+        return hadSpace;
+    }
     while (i < css.length) {
         const char = css[i];
-        if (char === '@') {
-            // At-rule
-            inSelector = true;
-            // Add spacing before at-rule
-            if (indentLevel === 0) {
-                // Top-level at-rule
-                if (result && !result.endsWith('\n\n') && !result.endsWith('\n')) {
-                    result += '\n\n';
+        // Skip whitespace at current position
+        if (/\s/.test(char)) {
+            const hadSpace = skipWhitespace();
+            // Add single space if appropriate
+            if (hadSpace && !result.endsWith('\n') && !result.endsWith(' ') && i < css.length) {
+                const nextChar = css[i];
+                if (nextChar !== '{' && nextChar !== '}' && nextChar !== ';' && nextChar !== ',') {
+                    result += ' ';
                 }
             }
-            else {
-                // Nested at-rule - add indentation if at start of line
-                if (result.endsWith('\n')) {
-                    result += indent.repeat(indentLevel);
-                }
-            }
-            let atRuleText = '';
-            while (i < css.length && css[i] !== '{') {
-                atRuleText += css[i];
-                i++;
-            }
-            atRuleText = atRuleText.replace(/\s+/g, ' ').trim();
-            result += atRuleText;
+            continue;
         }
+        // Handle at-rules
+        if (char === '@') {
+            inProperty = false;
+            if (indentLevel === 0 && result && !result.endsWith('\n\n')) {
+                result += '\n\n';
+            }
+            else if (indentLevel > 0 && result.endsWith('\n')) {
+                result += indent.repeat(indentLevel);
+            }
+            // Copy at-rule until {
+            while (i < css.length && css[i] !== '{') {
+                if (/\s/.test(css[i])) {
+                    skipWhitespace();
+                    if (i < css.length && css[i] !== '{') {
+                        result += ' ';
+                    }
+                }
+                else {
+                    result += css[i];
+                    i++;
+                }
+            }
+        }
+        // Handle opening brace
         else if (char === '{') {
-            // Add space before { only if not already there
+            inProperty = false;
             if (!result.endsWith(' ')) {
                 result += ' ';
             }
             result += '{\n';
             indentLevel++;
-            inSelector = false;
             i++;
-            while (i < css.length && css[i] === ' ') {
-                i++;
-            }
         }
+        // Handle closing brace
         else if (char === '}') {
+            inProperty = false;
             result = result.trimEnd();
             if (!result.endsWith(';') && !result.endsWith('{') && !result.endsWith('}')) {
                 result += ';';
@@ -280,19 +297,14 @@ function beautifyCSS(css, indentSize = 4) {
             }
             indentLevel--;
             result += indent.repeat(indentLevel) + '}';
-            inSelector = true;
             i++;
-            while (i < css.length && css[i] === ' ') {
-                i++;
-            }
+            skipWhitespace();
+            // Add spacing after }
             if (i < css.length && css[i] !== '}') {
                 const nextContent = css.substring(i, Math.min(i + 10, css.length));
-                const isKeyframeSelector = /^[\d]/.test(nextContent) ||
-                    /^from/.test(nextContent) ||
-                    /^to/.test(nextContent);
+                const isKeyframeSelector = /^[\d]/.test(nextContent) || /^from/.test(nextContent) || /^to/.test(nextContent);
                 if (isKeyframeSelector) {
                     result += '\n';
-                    inSelector = false;
                 }
                 else if (indentLevel === 0) {
                     result += '\n\n';
@@ -302,41 +314,36 @@ function beautifyCSS(css, indentSize = 4) {
                 }
             }
         }
+        // Handle colon
         else if (char === ':') {
-            // Don't add space if we already have one or after newline
-            if (result.endsWith(' ') || result.endsWith('\n')) {
-                i++;
-                continue;
+            // Check if this is a property colon or a selector pseudo-class
+            // If we just had a newline + indentation, this is likely a property
+            if (result.endsWith('\n' + indent.repeat(indentLevel)) || inProperty) {
+                // This is a property colon
+                result += ': ';
+                inProperty = true;
             }
-            // In selector mode, don't add space after ( or before :
-            if (inSelector) {
-                const lastChar = result.length > 0 ? result[result.length - 1] : '';
-                // Skip space after opening parenthesis
-                if (lastChar === '(') {
-                    i++;
-                    continue;
-                }
+            else {
+                // This is a selector pseudo-class/element - keep as-is
+                result += ':';
             }
-            result += char;
             i++;
         }
+        // Handle semicolon
         else if (char === ';') {
+            inProperty = false;
             result += ';\n';
             i++;
-            while (i < css.length && css[i] === ' ') {
-                i++;
-            }
             if (i < css.length && css[i] !== '}') {
                 result += indent.repeat(indentLevel);
             }
         }
+        // Handle comma
         else if (char === ',') {
             result += ', ';
             i++;
-            while (i < css.length && css[i] === ' ') {
-                i++;
-            }
         }
+        // Handle comments
         else if (char === '/' && i + 1 < css.length && css[i + 1] === '*') {
             const commentEnd = css.indexOf('*/', i + 2);
             if (commentEnd !== -1) {
@@ -352,15 +359,7 @@ function beautifyCSS(css, indentSize = 4) {
                 i++;
             }
         }
-        else if (char === ' ') {
-            // Don't add space if we already have one or after newline
-            if (result.endsWith(' ') || result.endsWith('\n')) {
-                i++;
-                continue;
-            }
-            result += char;
-            i++;
-        }
+        // Regular character
         else {
             if (result.endsWith('\n')) {
                 result += indent.repeat(indentLevel);
@@ -369,6 +368,7 @@ function beautifyCSS(css, indentSize = 4) {
             i++;
         }
     }
+    // Cleanup
     result = result.replace(/\n{3,}/g, '\n\n');
     result = result.replace(/ +$/gm, '');
     return result.trim() + '\n';
