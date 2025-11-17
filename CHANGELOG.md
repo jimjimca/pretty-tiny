@@ -5,6 +5,14 @@ All notable changes to the "Pretty Tiny" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2025-11-17
+
+### Fixed
+- Fixed selectors starting with `:` (like `::selection`, `:root`, `:where()`)
+- Fixed strings in at-rules (URLs no longer broken by commas/colons)
+- Added default mode setting (can default to Pretty mode)
+- Modes are now remembered per file across sessions
+
 ## [1.0.5] - 2025-11-14
 
 ### Fixed
@@ -50,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.0.6]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.6
 [1.0.5]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.5
 [1.0.2]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.2
 [1.0.1]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.1

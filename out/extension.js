@@ -5,6 +5,7 @@ const vscode = require("vscode");
 // Global state for file modes
 const fileModes = new Map();
 let statusBarItem;
+let workspaceState;
 // Helper function to get full document range
 function getFullDocumentRange(document) {
     const firstLine = document.lineAt(0);
@@ -12,6 +13,13 @@ function getFullDocumentRange(document) {
     return new vscode.Range(firstLine.range.start, lastLine.range.end);
 }
 function activate(context) {
+    // Store workspace state
+    workspaceState = context.workspaceState;
+    // Load saved file modes from workspace state
+    const savedModes = workspaceState.get('fileModes', {});
+    for (const [uri, mode] of Object.entries(savedModes)) {
+        fileModes.set(uri, mode);
+    }
     // Create status bar item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.command = 'pretty-tiny.setMode';
@@ -61,6 +69,7 @@ function activate(context) {
         // Set mode to mini
         const fileUri = document.uri.toString();
         fileModes.set(fileUri, 'mini');
+        saveFileModes();
         updateStatusBar();
         vscode.window.showInformationMessage('CSS minified! Mode: Mini');
     });
@@ -82,6 +91,7 @@ function activate(context) {
         // Set mode to pretty
         const fileUri = document.uri.toString();
         fileModes.set(fileUri, 'pretty');
+        saveFileModes();
         updateStatusBar();
         vscode.window.showInformationMessage('CSS beautified! Mode: Pretty (auto-beautify enabled)');
     });
@@ -108,6 +118,7 @@ function activate(context) {
                 editBuilder.replace(range, beautified);
             });
             fileModes.set(fileUri, 'pretty');
+            saveFileModes();
             updateStatusBar();
             vscode.window.showInformationMessage('CSS beautified! Mode: Pretty');
         }
@@ -120,6 +131,7 @@ function activate(context) {
                 editBuilder.replace(range, minified);
             });
             fileModes.set(fileUri, 'mini');
+            saveFileModes();
             updateStatusBar();
             vscode.window.showInformationMessage('CSS minified! Mode: Mini');
         }
@@ -148,6 +160,7 @@ function activate(context) {
             selectedMode = 'auto';
         }
         fileModes.set(fileUri, selectedMode);
+        saveFileModes();
         updateStatusBar();
         if (selectedMode === 'pretty') {
             const document = editor.document;
@@ -180,6 +193,13 @@ function activate(context) {
     context.subscriptions.push(miniCommand, prettyCommand, toggleCommand, setModeCommand);
 }
 exports.activate = activate;
+function saveFileModes() {
+    const modesToSave = {};
+    fileModes.forEach((mode, uri) => {
+        modesToSave[uri] = mode;
+    });
+    workspaceState.update('fileModes', modesToSave);
+}
 function getModeLabel(mode) {
     const labels = {
         pretty: 'Pretty',
@@ -195,7 +215,16 @@ function updateStatusBar() {
         return;
     }
     const fileUri = editor.document.uri.toString();
-    const mode = fileModes.get(fileUri) || 'auto';
+    // Get default mode from settings
+    const config = vscode.workspace.getConfiguration('prettyTiny');
+    const defaultMode = config.get('defaultMode', 'auto');
+    // Get mode for this file, or use default
+    const mode = fileModes.get(fileUri) || defaultMode;
+    // Save the mode if it's not already set
+    if (!fileModes.has(fileUri)) {
+        fileModes.set(fileUri, mode);
+        saveFileModes();
+    }
     const labels = {
         pretty: 'Pretty',
         mini: 'Mini',
@@ -240,6 +269,22 @@ function beautifyCSS(css, indentSize = 4) {
     }
     while (i < css.length) {
         const char = css[i];
+        if (char === '"' || char === "'") {
+            const quote = char;
+            result += char;
+            i++;
+            // Copy everything until closing quote
+            while (i < css.length) {
+                result += css[i];
+                if (css[i] === quote && css[i - 1] !== '\\') {
+                    // Found unescaped closing quote
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            continue;
+        }
         // Skip whitespace at current position
         if (/\s/.test(char)) {
             const hadSpace = skipWhitespace();
@@ -261,17 +306,43 @@ function beautifyCSS(css, indentSize = 4) {
             else if (indentLevel > 0 && result.endsWith('\n')) {
                 result += indent.repeat(indentLevel);
             }
-            // Copy at-rule until {
-            while (i < css.length && css[i] !== '{') {
-                if (/\s/.test(css[i])) {
+            // Copy at-rule until ; or {
+            let atRuleContent = '';
+            while (i < css.length && css[i] !== '{' && css[i] !== ';') {
+                // Handle strings inside at-rule
+                if (css[i] === '"' || css[i] === "'") {
+                    const quote = css[i];
+                    atRuleContent += css[i];
+                    i++;
+                    // Copy everything until closing quote
+                    while (i < css.length) {
+                        atRuleContent += css[i];
+                        if (css[i] === quote && css[i - 1] !== '\\') {
+                            i++;
+                            break;
+                        }
+                        i++;
+                    }
+                }
+                else if (/\s/.test(css[i])) {
                     skipWhitespace();
-                    if (i < css.length && css[i] !== '{') {
-                        result += ' ';
+                    if (i < css.length && css[i] !== '{' && css[i] !== ';') {
+                        atRuleContent += ' ';
                     }
                 }
                 else {
-                    result += css[i];
+                    atRuleContent += css[i];
                     i++;
+                }
+            }
+            result += atRuleContent;
+            // If at-rule ends with ; (like @import), add newline
+            if (i < css.length && css[i] === ';') {
+                result += ';\n';
+                i++;
+                // Add extra newline after top-level at-rules
+                if (indentLevel === 0) {
+                    result += '\n';
                 }
             }
         }
@@ -316,15 +387,25 @@ function beautifyCSS(css, indentSize = 4) {
         }
         // Handle colon
         else if (char === ':') {
-            // Check if this is a property colon or a selector pseudo-class
-            // If we just had a newline + indentation, this is likely a property
-            if (result.endsWith('\n' + indent.repeat(indentLevel)) || inProperty) {
+            const lastNewlineIndex = result.lastIndexOf('\n');
+            const currentLineContent = lastNewlineIndex >= 0 ? result.substring(lastNewlineIndex + 1) : result;
+            const currentLineAfterIndent = currentLineContent.replace(indent.repeat(indentLevel), '');
+            // Count colons already on this line
+            const colonsOnLine = (currentLineAfterIndent.match(/:/g) || []).length;
+            // Check if line starts with typical selector patterns
+            const trimmedLine = currentLineAfterIndent.trim();
+            const isSelector = indentLevel === 0 || // Top level is always selector
+                colonsOnLine > 0 || // Second+ colon is content, not property
+                trimmedLine.length === 0 || // Empty line = selector
+                /^[&*\.#\[\]>+~,:]/.test(trimmedLine) || // Starts with selector char
+                /^[a-z]+[:\[]/.test(trimmedLine); // Element selector like a:hover or div[
+            if (!isSelector && indentLevel > 0) {
                 // This is a property colon
                 result += ': ';
                 inProperty = true;
             }
             else {
-                // This is a selector pseudo-class/element - keep as-is
+                // This is a selector pseudo-class/element
                 result += ':';
             }
             i++;

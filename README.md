@@ -84,7 +84,10 @@ Access settings in **File > Preferences > Settings** (or **Code > Preferences > 
     "prettyTiny.removeComments": true,
 
     // Auto-beautify on save in Pretty mode (default: true)
-    "prettyTiny.autoBeautifyOnSave": true
+    "prettyTiny.autoBeautifyOnSave": true,
+
+    // Default mode for new CSS files (default: "pretty")
+    "prettyTiny.defaultMode": "pretty"
 }
 ```
 
@@ -107,6 +110,13 @@ Access settings in **File > Preferences > Settings** (or **Code > Preferences > 
 
 -   When enabled, CSS is automatically beautified on save in Pretty mode
 -   Default: `true`
+
+**`prettyTiny.defaultMode`**
+
+- Sets the default mode for CSS files when opened for the first time
+- Options: `"pretty"`, `"mini"`, `"auto"`
+- Default: `"pretty"`
+- **Note:** Once you change a file's mode, that preference is remembered for that specific file
 
 ## Examples
 

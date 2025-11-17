@@ -78,6 +78,17 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Automatically beautify on save when in Pretty mode"
+                },
+                "prettyTiny.defaultMode": {
+                    "type": "string",
+                    "enum": ["pretty", "mini", "auto"],
+                    "default": "pretty",
+                    "description": "Default mode for CSS files when opened for the first time",
+                    "enumDescriptions": [
+                        "Pretty: Beautify on save",
+                        "Mini: Keep minified",
+                        "Normal: No automatic processing"
+                    ]
                 }
             }
         }
