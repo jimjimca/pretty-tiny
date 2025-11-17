@@ -2,7 +2,7 @@
     "name": "pretty-tiny",
     "displayName": "Pretty Tiny",
     "description": "Minify and beautify CSS - Automatic toggle with Pretty mode",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "publisher": "jimjimca",
     "icon": "pretty-tiny.png",
     "repository": {
@@ -81,7 +81,11 @@
                 },
                 "prettyTiny.defaultMode": {
                     "type": "string",
-                    "enum": ["pretty", "mini", "auto"],
+                    "enum": [
+                        "pretty",
+                        "mini",
+                        "auto"
+                    ],
                     "default": "pretty",
                     "description": "Default mode for CSS files when opened for the first time",
                     "enumDescriptions": [
