@@ -462,6 +462,11 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
         }
         // Handle colon
         else if (char === ':') {
+            // Add indentation if at start of line
+            if (result.endsWith('\n')) {
+                result += indent.repeat(indentLevel);
+            }
+    
             const lastNewlineIndex = result.lastIndexOf('\n');
             const currentLineContent = lastNewlineIndex >= 0 ? result.substring(lastNewlineIndex + 1) : result;
             const currentLineAfterIndent = currentLineContent.replace(indent.repeat(indentLevel), '');
@@ -469,21 +474,28 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             // Count colons already on this line
             const colonsOnLine = (currentLineAfterIndent.match(/:/g) || []).length;
             
-            // Check if line starts with typical selector patterns
             const trimmedLine = currentLineAfterIndent.trim();
+            
+            // Look ahead: if { comes before ; it's a selector, otherwise it's a property
+            const restOfCSS = css.substring(i + 1);
+            const nextBraceIndex = restOfCSS.indexOf('{');
+            const nextSemiIndex = restOfCSS.indexOf(';');
+            
+            // It's a selector if:
+            // - { comes before ; (or no ; found)
+            // - Or we're at top level
+            // - Or it's not the first colon on the line
             const isSelector = 
-                indentLevel === 0 || // Top level is always selector
-                colonsOnLine > 0 || // Second+ colon is content, not property
-                trimmedLine.length === 0 || // Empty line = selector
-                /^[&*\.#\[\]>+~,:]/.test(trimmedLine) || // Starts with selector char
-                /^[a-z]+[:\[]/.test(trimmedLine); // Element selector like a:hover or div[
+                indentLevel === 0 ||
+                colonsOnLine > 0 ||
+                trimmedLine.length === 0 ||
+                /^[&*\.#\[\]>+~,:]/.test(trimmedLine) ||
+                (nextBraceIndex !== -1 && (nextSemiIndex === -1 || nextBraceIndex < nextSemiIndex));
             
             if (!isSelector && indentLevel > 0) {
-                // This is a property colon
                 result += ': ';
                 inProperty = true;
             } else {
-                // This is a selector pseudo-class/element
                 result += ':';
             }
             i++;
