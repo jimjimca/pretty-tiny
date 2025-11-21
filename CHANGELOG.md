@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.0.8]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.8
 [1.0.7]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.7
 [1.0.6]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.6
 [1.0.5]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.5
