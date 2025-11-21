@@ -358,9 +358,12 @@ function beautifyCSS(css, indentSize = 4) {
         }
         // Handle closing brace
         else if (char === '}') {
-            inProperty = false;
             result = result.trimEnd();
-            if (!result.endsWith(';') && !result.endsWith('{') && !result.endsWith('}')) {
+            // Don't add semicolon if line ends with comment, or already has proper ending
+            if (!result.endsWith(';') &&
+                !result.endsWith('{') &&
+                !result.endsWith('}') &&
+                !result.endsWith('*/')) { // ← AJOUTE CETTE LIGNE
                 result += ';';
             }
             if (!result.endsWith('\n')) {
