@@ -21,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     for (const [uri, mode] of Object.entries(savedModes)) {
         fileModes.set(uri, mode);
     }
+    
     // Create status bar item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.command = 'pretty-tiny.setMode';
@@ -46,17 +47,12 @@ export function activate(context: vscode.ExtensionContext) {
             if (!autoBeautify) return;
 
             const fileUri = document.uri.toString();
-            const mode = fileModes.get(fileUri) || 'auto';
+            const mode = fileModes.get(fileUri) || config.get<'pretty' | 'mini' | 'auto'>('defaultMode', 'auto');
 
             // If in pretty mode, beautify before save
             if (mode === 'pretty') {
                 const indentSize = config.get<number>('indentSize', 4);
-                const fullRange = new vscode.Range(
-                    0,
-                    0,
-                    document.lineCount,
-                    document.lineAt(document.lineCount - 1).text.length,
-                );
+                const fullRange = getFullDocumentRange(document);
 
                 const text = document.getText();
                 const beautified = beautifyCSS(text, indentSize);
@@ -70,22 +66,22 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Command: Minify
-    let miniCommand = vscode.commands.registerCommand('pretty-tiny.mini', () => {
+    let miniCommand = vscode.commands.registerCommand('pretty-tiny.mini', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
 
         const document = editor.document;
         const selection = editor.selection;
-
         const range = selection.isEmpty ? getFullDocumentRange(document) : selection;
-
         const text = document.getText(range);
+
+        // Cache config
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const removeComments = config.get<boolean>('removeComments', true);
 
         const minified = minifyCSS(text, removeComments);
 
-        editor.edit((editBuilder) => {
+        await editor.edit((editBuilder) => {
             editBuilder.replace(range, minified);
         });
 
@@ -99,22 +95,22 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Command: Beautify
-    let prettyCommand = vscode.commands.registerCommand('pretty-tiny.pretty', () => {
+    let prettyCommand = vscode.commands.registerCommand('pretty-tiny.pretty', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
 
         const document = editor.document;
         const selection = editor.selection;
-
         const range = selection.isEmpty ? getFullDocumentRange(document) : selection;
-
         const text = document.getText(range);
+
+        // Cache config
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const indentSize = config.get<number>('indentSize', 4);
 
         const beautified = beautifyCSS(text, indentSize);
 
-        editor.edit((editBuilder) => {
+        await editor.edit((editBuilder) => {
             editBuilder.replace(range, beautified);
         });
 
@@ -130,17 +126,18 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Command: Toggle
-    let toggleCommand = vscode.commands.registerCommand('pretty-tiny.toggle', () => {
+    let toggleCommand = vscode.commands.registerCommand('pretty-tiny.toggle', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
 
         const document = editor.document;
         const selection = editor.selection;
-
         const range = selection.isEmpty ? getFullDocumentRange(document) : selection;
-
         const text = document.getText(range);
         const fileUri = document.uri.toString();
+
+        // Cache config once
+        const config = vscode.workspace.getConfiguration('prettyTiny');
 
         // Detect if CSS is minified
         const lineCount = text.split('\n').length;
@@ -149,11 +146,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (isMinified) {
             // Beautify
-            const config = vscode.workspace.getConfiguration('prettyTiny');
             const indentSize = config.get<number>('indentSize', 4);
             const beautified = beautifyCSS(text, indentSize);
 
-            editor.edit((editBuilder) => {
+            await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
             });
 
@@ -163,11 +159,10 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('CSS beautified! Mode: Pretty');
         } else {
             // Minify
-            const config = vscode.workspace.getConfiguration('prettyTiny');
             const removeComments = config.get<boolean>('removeComments', true);
             const minified = minifyCSS(text, removeComments);
 
-            editor.edit((editBuilder) => {
+            await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
 
@@ -187,7 +182,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const fileUri = editor.document.uri.toString();
-        const currentMode = fileModes.get(fileUri) || 'auto';
+        const config = vscode.workspace.getConfiguration('prettyTiny');
+        const currentMode = fileModes.get(fileUri) || config.get<'pretty' | 'mini' | 'auto'>('defaultMode', 'auto');
 
         const choice = await vscode.window.showInformationMessage(
             `Current: ${getModeLabel(currentMode)}. Select new mode:`,
@@ -217,11 +213,10 @@ export function activate(context: vscode.ExtensionContext) {
             const document = editor.document;
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
-            const config = vscode.workspace.getConfiguration('prettyTiny');
             const indentSize = config.get<number>('indentSize', 4);
             const beautified = beautifyCSS(text, indentSize);
 
-            editor.edit((editBuilder) => {
+            await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
             });
 
@@ -230,11 +225,10 @@ export function activate(context: vscode.ExtensionContext) {
             const document = editor.document;
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
-            const config = vscode.workspace.getConfiguration('prettyTiny');
             const removeComments = config.get<boolean>('removeComments', true);
             const minified = minifyCSS(text, removeComments);
 
-            editor.edit((editBuilder) => {
+            await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
 
@@ -321,35 +315,40 @@ function minifyCSS(css: string, removeComments: boolean = true): string {
 }
 
 function beautifyCSS(css: string, indentSize: number = 4): string {
+    // Size safeguard - skip beautification for very large files
+    if (css.length > 500000) {
+        vscode.window.showWarningMessage('File too large to beautify (>500KB). Operation skipped.');
+        return css;
+    }
+
     let result = '';
     let indentLevel = 0;
     const indent = ' '.repeat(indentSize);
-    let inProperty = false; // Track if we're inside a property declaration
+    let inProperty = false;
 
     let i = 0;
+    const len = css.length;
 
     // Helper to skip whitespace
     function skipWhitespace(): boolean {
         let hadSpace = false;
-        while (i < css.length && /\s/.test(css[i])) {
+        while (i < len && /\s/.test(css[i])) {
             hadSpace = true;
             i++;
         }
         return hadSpace;
     }
 
-    while (i < css.length) {
+    while (i < len) {
         const char = css[i];
 
         if (char === '"' || char === "'") {
             const quote = char;
             result += char;
             i++;
-            // Copy everything until closing quote
-            while (i < css.length) {
+            while (i < len) {
                 result += css[i];
                 if (css[i] === quote && css[i - 1] !== '\\') {
-                    // Found unescaped closing quote
                     i++;
                     break;
                 }
@@ -358,11 +357,9 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             continue;
         }
 
-        // Skip whitespace at current position
         if (/\s/.test(char)) {
             const hadSpace = skipWhitespace();
-            // Add single space if appropriate
-            if (hadSpace && !result.endsWith('\n') && !result.endsWith(' ') && i < css.length) {
+            if (hadSpace && !result.endsWith('\n') && !result.endsWith(' ') && i < len) {
                 const nextChar = css[i];
                 if (nextChar !== '{' && nextChar !== '}' && nextChar !== ';' && nextChar !== ',') {
                     result += ' ';
@@ -371,7 +368,6 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             continue;
         }
 
-        // Handle at-rules
         if (char === '@') {
             inProperty = false;
             if (indentLevel === 0 && result && !result.endsWith('\n\n')) {
@@ -380,16 +376,13 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
                 result += indent.repeat(indentLevel);
             }
 
-            // Copy at-rule until ; or {
             let atRuleContent = '';
-            while (i < css.length && css[i] !== '{' && css[i] !== ';') {
-                // Handle strings inside at-rule
+            while (i < len && css[i] !== '{' && css[i] !== ';') {
                 if (css[i] === '"' || css[i] === "'") {
                     const quote = css[i];
                     atRuleContent += css[i];
                     i++;
-                    // Copy everything until closing quote
-                    while (i < css.length) {
+                    while (i < len) {
                         atRuleContent += css[i];
                         if (css[i] === quote && css[i - 1] !== '\\') {
                             i++;
@@ -400,7 +393,7 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
                 }
                 else if (/\s/.test(css[i])) {
                     skipWhitespace();
-                    if (i < css.length && css[i] !== '{' && css[i] !== ';') {
+                    if (i < len && css[i] !== '{' && css[i] !== ';') {
                         atRuleContent += ' ';
                     }
                 } else {
@@ -410,17 +403,14 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             }
             result += atRuleContent;
             
-            // If at-rule ends with ; (like @import), add newline
-            if (i < css.length && css[i] === ';') {
+            if (i < len && css[i] === ';') {
                 result += ';\n';
                 i++;
-                // Add extra newline after top-level at-rules
                 if (indentLevel === 0) {
                     result += '\n';
                 }
             }
         }
-        // Handle opening brace
         else if (char === '{') {
             inProperty = false;
             if (!result.endsWith(' ')) {
@@ -430,14 +420,12 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             indentLevel++;
             i++;
         }
-        // Handle closing brace
         else if (char === '}') {
             result = result.trimEnd();
-            // Don't add semicolon if line ends with comment, or already has proper ending
             if (!result.endsWith(';') && 
                 !result.endsWith('{') && 
                 !result.endsWith('}') && 
-                !result.endsWith('*/')) {  // ← AJOUTE CETTE LIGNE
+                !result.endsWith('*/')) {
                 result += ';';
             }
             if (!result.endsWith('\n')) {
@@ -449,9 +437,8 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
 
             skipWhitespace();
             
-            // Add spacing after }
-            if (i < css.length && css[i] !== '}') {
-                const nextContent = css.substring(i, Math.min(i + 10, css.length));
+            if (i < len && css[i] !== '}') {
+                const nextContent = css.substring(i, Math.min(i + 10, len));
                 const isKeyframeSelector = /^[\d]/.test(nextContent) || /^from/.test(nextContent) || /^to/.test(nextContent);
                 
                 if (isKeyframeSelector) {
@@ -463,9 +450,7 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
                 }
             }
         }
-        // Handle colon
         else if (char === ':') {
-            // Add indentation if at start of line
             if (result.endsWith('\n')) {
                 result += indent.repeat(indentLevel);
             }
@@ -474,20 +459,13 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             const currentLineContent = lastNewlineIndex >= 0 ? result.substring(lastNewlineIndex + 1) : result;
             const currentLineAfterIndent = currentLineContent.replace(indent.repeat(indentLevel), '');
             
-            // Count colons already on this line
             const colonsOnLine = (currentLineAfterIndent.match(/:/g) || []).length;
-            
             const trimmedLine = currentLineAfterIndent.trim();
             
-            // Look ahead: if { comes before ; it's a selector, otherwise it's a property
             const restOfCSS = css.substring(i + 1);
             const nextBraceIndex = restOfCSS.indexOf('{');
             const nextSemiIndex = restOfCSS.indexOf(';');
             
-            // It's a selector if:
-            // - { comes before ; (or no ; found)
-            // - Or we're at top level
-            // - Or it's not the first colon on the line
             const isSelector = 
                 indentLevel === 0 ||
                 colonsOnLine > 0 ||
@@ -503,36 +481,92 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
             }
             i++;
         }
-        // Handle semicolon
         else if (char === ';') {
-            inProperty = false;
-            result += ';\n';
+            result += ';';
             i++;
-            if (i < css.length && css[i] !== '}') {
-                result += indent.repeat(indentLevel);
+            
+            let tempI = i;
+            while (tempI < len && /\s/.test(css[tempI])) {
+                tempI++;
+            }
+            const hasInlineComment = css.substring(tempI, tempI + 2) === '/*';
+            
+            if (!hasInlineComment) {
+                result += '\n';
+                while (i < len && /\s/.test(css[i])) {
+                    i++;
+                }
+                if (i < len && css[i] !== '}') {
+                    result += indent.repeat(indentLevel);
+                }
+            } else {
+                while (i < len && /\s/.test(css[i])) {
+                    i++;
+                }
             }
         }
-        // Handle comma
         else if (char === ',') {
             result += ', ';
             i++;
         }
-        // Handle comments
-        else if (char === '/' && i + 1 < css.length && css[i + 1] === '*') {
+        else if (char === '/' && i + 1 < len && css[i + 1] === '*') {
             const commentEnd = css.indexOf('*/', i + 2);
             if (commentEnd !== -1) {
                 const comment = css.substring(i, commentEnd + 2);
-                result += '\n' + indent.repeat(indentLevel) + comment + '\n';
-                if (indentLevel > 0) {
-                    result += indent.repeat(indentLevel);
+                
+                // Check what comes after the comment
+                let afterCommentIndex = commentEnd + 2;
+                while (afterCommentIndex < len && /\s/.test(css[afterCommentIndex])) {
+                    afterCommentIndex++;
                 }
-                i = commentEnd + 2;
+                const followedBySemicolon = afterCommentIndex < len && css[afterCommentIndex] === ';';
+                
+                // Check if this is an inline comment
+                const lastNonSpace = result.trimEnd();
+                const isInline = lastNonSpace.length > 0 && !lastNonSpace.endsWith('\n');
+                
+                if (isInline) {
+                    // Inline comment - add space only if not already there
+                    if (!result.endsWith(' ')) {
+                        result += ' ';
+                    }
+                    result += comment;
+                    i = commentEnd + 2;
+                    
+                    if (followedBySemicolon) {
+                        // Skip whitespace, semicolon will be handled next
+                        while (i < len && /\s/.test(css[i])) {
+                            i++;
+                        }
+                    } else {
+                        // No semicolon after, add newline
+                        result += '\n';
+                        while (i < len && /\s/.test(css[i])) {
+                            i++;
+                        }
+                        if (i < len && css[i] !== '}') {
+                            result += indent.repeat(indentLevel);
+                        }
+                    }
+                } else {
+                    // Block comment - on its own line
+                    if (!result.endsWith('\n')) {
+                        result += '\n';
+                    }
+                    
+                    const commentIndent = indentLevel > 0 ? indent.repeat(indentLevel) : '';
+                    result += commentIndent + comment + '\n';
+                    
+                    if (indentLevel > 0) {
+                        result += indent.repeat(indentLevel);
+                    }
+                    i = commentEnd + 2;
+                }
             } else {
                 result += char;
                 i++;
             }
         }
-        // Regular character
         else {
             if (result.endsWith('\n')) {
                 result += indent.repeat(indentLevel);
@@ -542,7 +576,6 @@ function beautifyCSS(css: string, indentSize: number = 4): string {
         }
     }
 
-    // Cleanup
     result = result.replace(/\n{3,}/g, '\n\n');
     result = result.replace(/ +$/gm, '');
 

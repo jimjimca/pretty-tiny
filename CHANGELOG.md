@@ -5,11 +5,22 @@ All notable changes to the "Pretty Tiny" extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2025-11-21
+
+### Fixed
+- Fixed comment handling
+
+### Improved
+- Better performance and reliability
+- Added protection for large files (>500KB)
+
 ## [1.0.8] - 2025-11-21
+
 ### Fixed
 - Fixed an issue with where empty selector and comments would add `;`
 
 ## [1.0.7] - 2025-11-19
+
 ### Fixed
 - Fixed selectors starting with `:` inside at-rule
 - Fixed selectors starting tag name inside at-rule
@@ -67,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.0.9]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.9
 [1.0.8]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.8
 [1.0.7]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.7
 [1.0.6]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.6
