@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
 const vscode = require("vscode");
+const css_1 = require("./formatters/css");
 // Global state for file modes
 const fileModes = new Map();
 let statusBarItem;
@@ -45,7 +46,7 @@ function activate(context) {
             const indentSize = config.get('indentSize', 4);
             const fullRange = getFullDocumentRange(document);
             const text = document.getText();
-            const beautified = beautifyCSS(text, indentSize);
+            const beautified = (0, css_1.beautifyCSS)(text, indentSize);
             const edit = new vscode.WorkspaceEdit();
             edit.replace(document.uri, fullRange, beautified);
             event.waitUntil(vscode.workspace.applyEdit(edit));
@@ -63,7 +64,7 @@ function activate(context) {
         // Cache config
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const removeComments = config.get('removeComments', true);
-        const minified = minifyCSS(text, removeComments);
+        const minified = (0, css_1.minifyCSS)(text, removeComments);
         await editor.edit((editBuilder) => {
             editBuilder.replace(range, minified);
         });
@@ -86,7 +87,7 @@ function activate(context) {
         // Cache config
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const indentSize = config.get('indentSize', 4);
-        const beautified = beautifyCSS(text, indentSize);
+        const beautified = (0, css_1.beautifyCSS)(text, indentSize);
         await editor.edit((editBuilder) => {
             editBuilder.replace(range, beautified);
         });
@@ -116,7 +117,7 @@ function activate(context) {
         if (isMinified) {
             // Beautify
             const indentSize = config.get('indentSize', 4);
-            const beautified = beautifyCSS(text, indentSize);
+            const beautified = (0, css_1.beautifyCSS)(text, indentSize);
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
             });
@@ -128,7 +129,7 @@ function activate(context) {
         else {
             // Minify
             const removeComments = config.get('removeComments', true);
-            const minified = minifyCSS(text, removeComments);
+            const minified = (0, css_1.minifyCSS)(text, removeComments);
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
@@ -170,7 +171,7 @@ function activate(context) {
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
             const indentSize = config.get('indentSize', 4);
-            const beautified = beautifyCSS(text, indentSize);
+            const beautified = (0, css_1.beautifyCSS)(text, indentSize);
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
             });
@@ -181,7 +182,7 @@ function activate(context) {
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
             const removeComments = config.get('removeComments', true);
-            const minified = minifyCSS(text, removeComments);
+            const minified = (0, css_1.minifyCSS)(text, removeComments);
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
@@ -234,272 +235,6 @@ function updateStatusBar() {
     statusBarItem.text = `CSS: ${labels[mode]}`;
     statusBarItem.tooltip = 'Pretty Tiny - Click to change mode';
     statusBarItem.show();
-}
-function minifyCSS(css, removeComments = true) {
-    let result = css;
-    if (removeComments) {
-        result = result.replace(/\/\*[\s\S]*?\*\//g, '');
-    }
-    result = result.replace(/\s+/g, ' ');
-    result = result.replace(/\s*{\s*/g, '{');
-    result = result.replace(/\s*}\s*/g, '}');
-    result = result.replace(/\s*:\s*/g, ':');
-    result = result.replace(/\s*;\s*/g, ';');
-    result = result.replace(/\s*,\s*/g, ',');
-    result = result.replace(/\s*>\s*/g, '>');
-    result = result.replace(/\s*\+\s*/g, '+');
-    result = result.replace(/\s*~\s*/g, '~');
-    result = result.replace(/;}/g, '}');
-    result = result.trim();
-    return result;
-}
-function beautifyCSS(css, indentSize = 4) {
-    // Size safeguard - skip beautification for very large files
-    if (css.length > 500000) {
-        vscode.window.showWarningMessage('File too large to beautify (>500KB). Operation skipped.');
-        return css;
-    }
-    let result = '';
-    let indentLevel = 0;
-    const indent = ' '.repeat(indentSize);
-    let inProperty = false;
-    let i = 0;
-    const len = css.length;
-    // Helper to skip whitespace
-    function skipWhitespace() {
-        let hadSpace = false;
-        while (i < len && /\s/.test(css[i])) {
-            hadSpace = true;
-            i++;
-        }
-        return hadSpace;
-    }
-    while (i < len) {
-        const char = css[i];
-        if (char === '"' || char === "'") {
-            const quote = char;
-            result += char;
-            i++;
-            while (i < len) {
-                result += css[i];
-                if (css[i] === quote && css[i - 1] !== '\\') {
-                    i++;
-                    break;
-                }
-                i++;
-            }
-            continue;
-        }
-        if (/\s/.test(char)) {
-            const hadSpace = skipWhitespace();
-            if (hadSpace && !result.endsWith('\n') && !result.endsWith(' ') && i < len) {
-                const nextChar = css[i];
-                if (nextChar !== '{' && nextChar !== '}' && nextChar !== ';' && nextChar !== ',') {
-                    result += ' ';
-                }
-            }
-            continue;
-        }
-        if (char === '@') {
-            inProperty = false;
-            if (indentLevel === 0 && result && !result.endsWith('\n\n')) {
-                result += '\n\n';
-            }
-            else if (indentLevel > 0 && result.endsWith('\n')) {
-                result += indent.repeat(indentLevel);
-            }
-            let atRuleContent = '';
-            while (i < len && css[i] !== '{' && css[i] !== ';') {
-                if (css[i] === '"' || css[i] === "'") {
-                    const quote = css[i];
-                    atRuleContent += css[i];
-                    i++;
-                    while (i < len) {
-                        atRuleContent += css[i];
-                        if (css[i] === quote && css[i - 1] !== '\\') {
-                            i++;
-                            break;
-                        }
-                        i++;
-                    }
-                }
-                else if (/\s/.test(css[i])) {
-                    skipWhitespace();
-                    if (i < len && css[i] !== '{' && css[i] !== ';') {
-                        atRuleContent += ' ';
-                    }
-                }
-                else {
-                    atRuleContent += css[i];
-                    i++;
-                }
-            }
-            result += atRuleContent;
-            if (i < len && css[i] === ';') {
-                result += ';\n';
-                i++;
-                if (indentLevel === 0) {
-                    result += '\n';
-                }
-            }
-        }
-        else if (char === '{') {
-            inProperty = false;
-            if (!result.endsWith(' ')) {
-                result += ' ';
-            }
-            result += '{\n';
-            indentLevel++;
-            i++;
-        }
-        else if (char === '}') {
-            result = result.trimEnd();
-            if (!result.endsWith(';') &&
-                !result.endsWith('{') &&
-                !result.endsWith('}') &&
-                !result.endsWith('*/')) {
-                result += ';';
-            }
-            if (!result.endsWith('\n')) {
-                result += '\n';
-            }
-            indentLevel--;
-            result += indent.repeat(indentLevel) + '}';
-            i++;
-            skipWhitespace();
-            if (i < len && css[i] !== '}') {
-                const nextContent = css.substring(i, Math.min(i + 10, len));
-                const isKeyframeSelector = /^[\d]/.test(nextContent) || /^from/.test(nextContent) || /^to/.test(nextContent);
-                if (isKeyframeSelector) {
-                    result += '\n';
-                }
-                else if (indentLevel === 0) {
-                    result += '\n\n';
-                }
-                else {
-                    result += '\n';
-                }
-            }
-        }
-        else if (char === ':') {
-            if (result.endsWith('\n')) {
-                result += indent.repeat(indentLevel);
-            }
-            const lastNewlineIndex = result.lastIndexOf('\n');
-            const currentLineContent = lastNewlineIndex >= 0 ? result.substring(lastNewlineIndex + 1) : result;
-            const currentLineAfterIndent = currentLineContent.replace(indent.repeat(indentLevel), '');
-            const colonsOnLine = (currentLineAfterIndent.match(/:/g) || []).length;
-            const trimmedLine = currentLineAfterIndent.trim();
-            const restOfCSS = css.substring(i + 1);
-            const nextBraceIndex = restOfCSS.indexOf('{');
-            const nextSemiIndex = restOfCSS.indexOf(';');
-            const isSelector = indentLevel === 0 ||
-                colonsOnLine > 0 ||
-                trimmedLine.length === 0 ||
-                /^[&*\.#\[\]>+~,:]/.test(trimmedLine) ||
-                (nextBraceIndex !== -1 && (nextSemiIndex === -1 || nextBraceIndex < nextSemiIndex));
-            if (!isSelector && indentLevel > 0) {
-                result += ': ';
-                inProperty = true;
-            }
-            else {
-                result += ':';
-            }
-            i++;
-        }
-        else if (char === ';') {
-            result += ';';
-            i++;
-            let tempI = i;
-            while (tempI < len && /\s/.test(css[tempI])) {
-                tempI++;
-            }
-            const hasInlineComment = css.substring(tempI, tempI + 2) === '/*';
-            if (!hasInlineComment) {
-                result += '\n';
-                while (i < len && /\s/.test(css[i])) {
-                    i++;
-                }
-                if (i < len && css[i] !== '}') {
-                    result += indent.repeat(indentLevel);
-                }
-            }
-            else {
-                while (i < len && /\s/.test(css[i])) {
-                    i++;
-                }
-            }
-        }
-        else if (char === ',') {
-            result += ', ';
-            i++;
-        }
-        else if (char === '/' && i + 1 < len && css[i + 1] === '*') {
-            const commentEnd = css.indexOf('*/', i + 2);
-            if (commentEnd !== -1) {
-                const comment = css.substring(i, commentEnd + 2);
-                // Check what comes after the comment
-                let afterCommentIndex = commentEnd + 2;
-                while (afterCommentIndex < len && /\s/.test(css[afterCommentIndex])) {
-                    afterCommentIndex++;
-                }
-                const followedBySemicolon = afterCommentIndex < len && css[afterCommentIndex] === ';';
-                // Check if this is an inline comment
-                const lastNonSpace = result.trimEnd();
-                const isInline = lastNonSpace.length > 0 && !lastNonSpace.endsWith('\n');
-                if (isInline) {
-                    // Inline comment - add space only if not already there
-                    if (!result.endsWith(' ')) {
-                        result += ' ';
-                    }
-                    result += comment;
-                    i = commentEnd + 2;
-                    if (followedBySemicolon) {
-                        // Skip whitespace, semicolon will be handled next
-                        while (i < len && /\s/.test(css[i])) {
-                            i++;
-                        }
-                    }
-                    else {
-                        // No semicolon after, add newline
-                        result += '\n';
-                        while (i < len && /\s/.test(css[i])) {
-                            i++;
-                        }
-                        if (i < len && css[i] !== '}') {
-                            result += indent.repeat(indentLevel);
-                        }
-                    }
-                }
-                else {
-                    // Block comment - on its own line
-                    if (!result.endsWith('\n')) {
-                        result += '\n';
-                    }
-                    const commentIndent = indentLevel > 0 ? indent.repeat(indentLevel) : '';
-                    result += commentIndent + comment + '\n';
-                    if (indentLevel > 0) {
-                        result += indent.repeat(indentLevel);
-                    }
-                    i = commentEnd + 2;
-                }
-            }
-            else {
-                result += char;
-                i++;
-            }
-        }
-        else {
-            if (result.endsWith('\n')) {
-                result += indent.repeat(indentLevel);
-            }
-            result += char;
-            i++;
-        }
-    }
-    result = result.replace(/\n{3,}/g, '\n\n');
-    result = result.replace(/ +$/gm, '');
-    return result.trim() + '\n';
 }
 function deactivate() { }
 exports.deactivate = deactivate;
