@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { beautifyCSS, minifyCSS } from './formatters/css';
+import { beautifyHTML, minifyHTML } from './formatters/html';
 // Global state for file modes
 const fileModes = new Map<string, 'pretty' | 'mini' | 'auto'>();
 let statusBarItem: vscode.StatusBarItem;
@@ -38,8 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onWillSaveTextDocument((event) => {
             const document = event.document;
 
-            // Check if it's a CSS file
-            if (document.languageId !== 'css') return;
+            // Check if it's a CSS or HTML file
+            if (document.languageId !== 'css' && document.languageId !== 'html') return;
 
             const config = vscode.workspace.getConfiguration('prettyTiny');
             const autoBeautify = config.get<boolean>('autoBeautifyOnSave', true);
@@ -55,7 +56,9 @@ export function activate(context: vscode.ExtensionContext) {
                 const fullRange = getFullDocumentRange(document);
 
                 const text = document.getText();
-                const beautified = beautifyCSS(text, indentSize);
+                const beautified = document.languageId === 'css'
+                    ? beautifyCSS(text, indentSize)
+                    : beautifyHTML(text, indentSize);
 
                 const edit = new vscode.WorkspaceEdit();
                 edit.replace(document.uri, fullRange, beautified);
@@ -71,6 +74,14 @@ export function activate(context: vscode.ExtensionContext) {
         if (!editor) return;
 
         const document = editor.document;
+        const language = document.languageId;
+        
+        // Check if supported language
+        if (language !== 'css' && language !== 'html') {
+            vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
+            return;
+        }
+
         const selection = editor.selection;
         const range = selection.isEmpty ? getFullDocumentRange(document) : selection;
         const text = document.getText(range);
@@ -79,7 +90,10 @@ export function activate(context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const removeComments = config.get<boolean>('removeComments', true);
 
-        const minified = minifyCSS(text, removeComments);
+        // Minify based on language
+        const minified = language === 'css' 
+            ? minifyCSS(text, removeComments)
+            : minifyHTML(text, removeComments);
 
         await editor.edit((editBuilder) => {
             editBuilder.replace(range, minified);
@@ -91,7 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
         saveFileModes();
         updateStatusBar();
 
-        vscode.window.showInformationMessage('CSS minified! Mode: Mini');
+        vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
     });
 
     // Command: Beautify
@@ -100,6 +114,14 @@ export function activate(context: vscode.ExtensionContext) {
         if (!editor) return;
 
         const document = editor.document;
+        const language = document.languageId;
+        
+        // Check if supported language
+        if (language !== 'css' && language !== 'html') {
+            vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
+            return;
+        }
+
         const selection = editor.selection;
         const range = selection.isEmpty ? getFullDocumentRange(document) : selection;
         const text = document.getText(range);
@@ -108,7 +130,10 @@ export function activate(context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const indentSize = config.get<number>('indentSize', 4);
 
-        const beautified = beautifyCSS(text, indentSize);
+        // Beautify based on language
+        const beautified = language === 'css'
+            ? beautifyCSS(text, indentSize)
+            : beautifyHTML(text, indentSize);
 
         await editor.edit((editBuilder) => {
             editBuilder.replace(range, beautified);
@@ -121,7 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
         updateStatusBar();
 
         vscode.window.showInformationMessage(
-            'CSS beautified! Mode: Pretty (auto-beautify enabled)',
+            `${language.toUpperCase()} beautified`,
         );
     });
 
@@ -131,6 +156,14 @@ export function activate(context: vscode.ExtensionContext) {
         if (!editor) return;
 
         const document = editor.document;
+        const language = document.languageId;
+        
+        // Check if supported language
+        if (language !== 'css' && language !== 'html') {
+            vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
+            return;
+        }
+
         const selection = editor.selection;
         const range = selection.isEmpty ? getFullDocumentRange(document) : selection;
         const text = document.getText(range);
@@ -139,7 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Cache config once
         const config = vscode.workspace.getConfiguration('prettyTiny');
 
-        // Detect if CSS is minified
+        // Detect if content is minified
         const lineCount = text.split('\n').length;
         const charCount = text.length;
         const isMinified = lineCount < 5 || charCount / lineCount > 100;
@@ -147,7 +180,9 @@ export function activate(context: vscode.ExtensionContext) {
         if (isMinified) {
             // Beautify
             const indentSize = config.get<number>('indentSize', 4);
-            const beautified = beautifyCSS(text, indentSize);
+            const beautified = language === 'css'
+                ? beautifyCSS(text, indentSize)
+                : beautifyHTML(text, indentSize);
 
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
@@ -156,11 +191,13 @@ export function activate(context: vscode.ExtensionContext) {
             fileModes.set(fileUri, 'pretty');
             saveFileModes();
             updateStatusBar();
-            vscode.window.showInformationMessage('CSS beautified! Mode: Pretty');
+            vscode.window.showInformationMessage(`${language.toUpperCase()} beautified`);
         } else {
             // Minify
             const removeComments = config.get<boolean>('removeComments', true);
-            const minified = minifyCSS(text, removeComments);
+            const minified = language === 'css'
+                ? minifyCSS(text, removeComments)
+                : minifyHTML(text, removeComments);
 
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
@@ -169,15 +206,23 @@ export function activate(context: vscode.ExtensionContext) {
             fileModes.set(fileUri, 'mini');
             saveFileModes();
             updateStatusBar();
-            vscode.window.showInformationMessage('CSS minified! Mode: Mini');
+            vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
         }
     });
 
     // Command: Change mode manually
     let setModeCommand = vscode.commands.registerCommand('pretty-tiny.setMode', async () => {
         const editor = vscode.window.activeTextEditor;
-        if (!editor || editor.document.languageId !== 'css') {
-            vscode.window.showWarningMessage('Open a CSS file first');
+        if (!editor) {
+            vscode.window.showWarningMessage('Open a file first');
+            return;
+        }
+
+        const language = editor.document.languageId;
+        
+        // Check if supported language
+        if (language !== 'css' && language !== 'html') {
+            vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
 
@@ -214,30 +259,33 @@ export function activate(context: vscode.ExtensionContext) {
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
             const indentSize = config.get<number>('indentSize', 4);
-            const beautified = beautifyCSS(text, indentSize);
+            const beautified = language === 'css'
+                ? beautifyCSS(text, indentSize)
+                : beautifyHTML(text, indentSize);
 
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
             });
 
-            vscode.window.showInformationMessage('Mode changed: Pretty Mode (CSS beautified)');
+            vscode.window.showInformationMessage(`Pretty Mode (${language.toUpperCase()} beautified)`);
         } else if (selectedMode === 'mini') {
             const document = editor.document;
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
             const removeComments = config.get<boolean>('removeComments', true);
-            const minified = minifyCSS(text, removeComments);
+            const minified = language === 'css'
+                ? minifyCSS(text, removeComments)
+                : minifyHTML(text, removeComments);
 
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
 
-            vscode.window.showInformationMessage('Mode changed: Mini Mode (CSS minified)');
+            vscode.window.showInformationMessage(`Mini Mode (${language.toUpperCase()} minified)`);
         } else {
-            vscode.window.showInformationMessage('Mode changed: Normal Mode');
+            vscode.window.showInformationMessage('Normal Mode');
         }
     });
-
     context.subscriptions.push(miniCommand, prettyCommand, toggleCommand, setModeCommand);
 }
 
@@ -261,7 +309,8 @@ function getModeLabel(mode: string): string {
 function updateStatusBar() {
     const editor = vscode.window.activeTextEditor;
 
-    if (!editor || editor.document.languageId !== 'css') {
+    // Show status bar only for CSS and HTML files
+    if (!editor || (editor.document.languageId !== 'css' && editor.document.languageId !== 'html')) {
         statusBarItem.hide();
         return;
     }
@@ -287,9 +336,10 @@ function updateStatusBar() {
         auto: 'Normal',
     };
 
-    statusBarItem.text = `CSS: ${labels[mode]}`;
-    statusBarItem.tooltip = 'Pretty Tiny - Click to change mode';
+    // Show language in status bar
+    const lang = editor.document.languageId.toUpperCase();
+    statusBarItem.text = `${lang}: ${labels[mode]}`;
+    statusBarItem.tooltip = 'Pretty Tiny - Change mode';
     statusBarItem.show();
 }
-
 export function deactivate() {}

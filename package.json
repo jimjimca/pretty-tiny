@@ -31,7 +31,8 @@
     ],
     "license": "MIT",
     "activationEvents": [
-        "onLanguage:css"
+        "onLanguage:css",
+        "onLanguage:html"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -58,7 +59,7 @@
                 "command": "pretty-tiny.toggle",
                 "key": "ctrl+alt+m",
                 "mac": "ctrl+cmd+m",
-                "when": "editorTextFocus && editorLangId == css"
+                "when": "editorTextFocus && (editorLangId == css || editorLangId == html)"
             }
         ],
         "configuration": {
