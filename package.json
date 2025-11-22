@@ -1,7 +1,7 @@
 {
     "name": "pretty-tiny",
     "displayName": "Pretty Tiny",
-    "description": "Minify and beautify CSS - Automatic toggle with Pretty mode",
+    "description": "Minify and beautify HTML/CSS - Automatic toggle with Pretty mode",
     "version": "1.0.9",
     "publisher": "jimjimca",
     "icon": "pretty-tiny.png",
@@ -88,7 +88,7 @@
                         "auto"
                     ],
                     "default": "pretty",
-                    "description": "Default mode for CSS files when opened for the first time",
+                    "description": "Default mode for HTML/CSS files when opened for the first time",
                     "enumDescriptions": [
                         "Pretty: Beautify on save",
                         "Mini: Keep minified",

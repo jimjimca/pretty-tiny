@@ -27,10 +27,10 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
     // Self-closing tags
     const selfClosingTags = /^<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)/i;
     
-    // Inline tags that should keep content on same line
-    const inlineTags = /^<(span|a|strong|em|b|i|code|small|label|button)/i;
+    // Structural tags that should not increase indent for themselves
+    const structuralTags = ['html', 'head', 'body'];
 
-    // Split by tags but keep text with its opening tag
+    // Split into tokens
     const tokens: string[] = [];
     let i = 0;
     
@@ -38,29 +38,27 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
         if (html[i] === '<') {
             const tagEnd = html.indexOf('>', i);
             if (tagEnd !== -1) {
-                const tag = html.substring(i, tagEnd + 1);
-                tokens.push(tag);
+                tokens.push(html.substring(i, tagEnd + 1));
                 i = tagEnd + 1;
             } else {
                 i++;
             }
         } else {
-            // Collect text until next tag
+            // Collect text
             let text = '';
             while (i < html.length && html[i] !== '<') {
                 text += html[i];
                 i++;
             }
-            if (text.trim()) {
-                tokens.push(text.trim());
+            const trimmed = text.trim();
+            if (trimmed) {
+                tokens.push(trimmed);
             }
         }
     }
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
-
-        // Skip empty tokens
         if (!token.trim()) continue;
 
         // HTML comment
@@ -69,42 +67,71 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
             continue;
         }
 
+        // Doctype
+        if (token.toLowerCase().startsWith('<!doctype')) {
+            result += token + '\n';
+            continue;
+        }
+
         // Closing tag
         if (token.startsWith('</')) {
-            level = Math.max(0, level - 1);
-            result += indent.repeat(level) + token + '\n';
+            const tagName = token.substring(2, token.length - 1).trim().toLowerCase();
+            
+            // Check if previous token was text - if so, put closing tag on same line
+            const prevToken = i > 0 ? tokens[i - 1] : '';
+            const prevWasText = prevToken && !prevToken.startsWith('<');
+            
+            if (prevWasText) {
+                // Text was on same line, close on same line
+                result = result.trimEnd(); // Remove trailing newline from text
+                result += token + '\n';
+            } else {
+                // Normal closing tag
+                if (!structuralTags.includes(tagName)) {
+                    level = Math.max(0, level - 1);
+                }
+                result += indent.repeat(level) + token + '\n';
+            }
             continue;
         }
 
         // Opening tag
         if (token.startsWith('<')) {
             const isSelfClosing = token.endsWith('/>') || selfClosingTags.test(token);
-            const isInline = inlineTags.test(token);
             
-            // Check if next token is text content
-            const nextToken = i + 1 < tokens.length ? tokens[i + 1] : '';
-            const hasTextContent = nextToken && !nextToken.startsWith('<');
+            // Extract tag name
+            let tagName = '';
+            let j = 1; // Skip '<'
+            while (j < token.length && !/[\s/>]/.test(token[j])) {
+                tagName += token[j];
+                j++;
+            }
+            tagName = tagName.toLowerCase();
 
-            if (hasTextContent && isInline) {
-                // Inline tag with text - keep on same line
-                result += indent.repeat(level) + token + nextToken;
-                i++; // Skip next token (we consumed it)
-            } else if (hasTextContent) {
-                // Block tag with text - put text on same line as opening tag
-                result += indent.repeat(level) + token + nextToken + '\n';
+            // Check if next token is text
+            const nextToken = i + 1 < tokens.length ? tokens[i + 1] : '';
+            const nextIsText = nextToken && !nextToken.startsWith('<');
+
+            // Add the opening tag
+            result += indent.repeat(level) + token;
+
+            if (nextIsText) {
+                // Text content follows - add it on same line
+                result += nextToken;
                 i++; // Skip next token
+                // Don't add newline yet - closing tag will handle it
             } else {
-                // Tag without immediate text content
-                result += indent.repeat(level) + token + '\n';
+                result += '\n';
             }
 
-            if (!isSelfClosing) {
+            // Increase indent for children (but not for structural tags)
+            if (!isSelfClosing && !structuralTags.includes(tagName)) {
                 level++;
             }
             continue;
         }
 
-        // Standalone text (shouldn't happen often)
+        // Standalone text (shouldn't happen if we consumed it above)
         result += indent.repeat(level) + token + '\n';
     }
 
