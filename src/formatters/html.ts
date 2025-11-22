@@ -1,143 +1,162 @@
 import * as vscode from 'vscode';
+import { beautifyCSS, minifyCSS } from './css';
 
-export function minifyHTML(html: string, removeComments: boolean = true): string {
+const selfClosingTags = new Set([
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+    'link', 'meta', 'param', 'source', 'track', 'wbr'
+]);
+
+export function minifyHTML(html: string, removeComments: boolean = true, indentSize: number = 4): string {
     let result = html;
 
+    // Preserve <script> tags with their content
+    const scripts: string[] = [];
+    result = result.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+        const cleaned = match.replace(/\n\s+(<\/script>)/g, '\n$1');
+        scripts.push(cleaned);
+        return `__SCRIPT_${scripts.length - 1}__`;
+    });
+
+    // Preserve <pre> tags with their content
+    const pres: string[] = [];
+    result = result.replace(/<pre[^>]*>[\s\S]*?<\/pre>/gi, (match) => {
+        pres.push(match);
+        return `__PRE_${pres.length - 1}__`;
+    });
+
+    // Preserve <textarea> tags with their content
+    const textareas: string[] = [];
+    result = result.replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, (match) => {
+        textareas.push(match);
+        return `__TEXTAREA_${textareas.length - 1}__`;
+    });
+
+    // Minify CSS inside <style> tags with minifyCSS
+    result = result.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, cssContent) => {
+        const minifiedCSS = minifyCSS(cssContent.trim(), removeComments);
+        return match.replace(cssContent, minifiedCSS);
+    });
+
+    // Remove comments according to config
     if (removeComments) {
         result = result.replace(/<!--[\s\S]*?-->/g, '');
     }
 
-    result = result.replace(/>\s+</g, '><');
-    result = result.trim();
+    // Remove ALL leading whitespace
+    const lines = result.split('\n');
+    result = lines.map(line => line.replace(/^\s+/, '')).filter(line => line.length > 0).join('\n');
+    
+    // Collapse multiple whitespaces to single space
+    result = result.replace(/\s{2,}/g, ' ');
+    
+    // Remove all remaining newlines
+    result = result.replace(/\n/g, '');
 
-    return result;
+    // Restore <script> tags with separation from the HTML
+    scripts.forEach((script, index) => {
+        result = result.replace(`__SCRIPT_${index}__`, `\n${script}\n`);
+    });
+
+    // Restore <pre> tags
+    pres.forEach((pre, index) => {
+        result = result.replace(`__PRE_${index}__`, `${pre}`);
+    });
+
+    // Restore <script> tags
+    textareas.forEach((textarea, index) => {
+        result = result.replace(`__TEXTAREA_${index}__`, `${textarea}`);
+    });
+
+    return result.trim();
 }
 
 export function beautifyHTML(html: string, indentSize: number = 4): string {
-    // Size safeguard
-    if (html.length > 500000) {
-        vscode.window.showWarningMessage('File too large to beautify (>500KB). Operation skipped.');
-        return html;
-    }
-
     const indent = ' '.repeat(indentSize);
     let result = '';
     let level = 0;
 
-    // Self-closing tags
-    const selfClosingTags = /^<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)/i;
-    
-    // Structural tags that should not increase indent for themselves
-    const structuralTags = ['html', 'head', 'body'];
-
-    // Split into tokens
-    const tokens: string[] = [];
     let i = 0;
-    
-    while (i < html.length) {
-        if (html[i] === '<') {
-            const tagEnd = html.indexOf('>', i);
-            if (tagEnd !== -1) {
-                tokens.push(html.substring(i, tagEnd + 1));
-                i = tagEnd + 1;
-            } else {
-                i++;
-            }
-        } else {
-            // Collect text
-            let text = '';
-            while (i < html.length && html[i] !== '<') {
-                text += html[i];
-                i++;
-            }
-            const trimmed = text.trim();
-            if (trimmed) {
-                tokens.push(trimmed);
-            }
+    const len = html.length;
+
+    // Skip whitespace helper
+    function skipWhitespace() {
+        while (i < len && /\s/.test(html[i])) {
+            i++;
         }
     }
 
-    for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i];
-        if (!token.trim()) continue;
+    while (i < len) {
+        skipWhitespace();
+        if (i >= len) break;
 
-        // HTML comment
-        if (token.startsWith('<!--')) {
-            result += indent.repeat(level) + token + '\n';
+        // DOCTYPE
+        if (html.substring(i, i + 9).toLowerCase() === '<!doctype') {
+            const end = html.indexOf('>', i);
+            result += html.substring(i, end + 1) + '\n';
+            i = end + 1;
             continue;
         }
 
-        // Doctype
-        if (token.toLowerCase().startsWith('<!doctype')) {
-            result += token + '\n';
-            continue;
+        // Comment
+        if (html.substring(i, i + 4) === '<!--') {
+            const end = html.indexOf('-->', i);
+            if (end !== -1) {
+                result += indent.repeat(level) + html.substring(i, end + 3) + '\n';
+                i = end + 3;
+                continue;
+            }
         }
 
         // Closing tag
-        if (token.startsWith('</')) {
-            const tagName = token.substring(2, token.length - 1).trim().toLowerCase();
-            
-            // Check if previous token was text - if so, put closing tag on same line
-            const prevToken = i > 0 ? tokens[i - 1] : '';
-            const prevWasText = prevToken && !prevToken.startsWith('<');
-            
-            if (prevWasText) {
-                // Text was on same line, close on same line
-                result = result.trimEnd(); // Remove trailing newline from text
-                result += token + '\n';
-            } else {
-                // Normal closing tag
-                if (!structuralTags.includes(tagName)) {
-                    level = Math.max(0, level - 1);
-                }
-                result += indent.repeat(level) + token + '\n';
-            }
+        if (html.substring(i, i + 2) === '</') {
+            level = Math.max(0, level - 1);
+            const end = html.indexOf('>', i);
+            result += indent.repeat(level) + html.substring(i, end + 1) + '\n';
+            i = end + 1;
             continue;
         }
 
         // Opening tag
-        if (token.startsWith('<')) {
-            const isSelfClosing = token.endsWith('/>') || selfClosingTags.test(token);
-            
-            // Extract tag name
-            let tagName = '';
-            let j = 1; // Skip '<'
-            while (j < token.length && !/[\s/>]/.test(token[j])) {
-                tagName += token[j];
-                j++;
+        if (html[i] === '<') {
+            const end = html.indexOf('>', i);
+            if (end !== -1) {
+                const tag = html.substring(i, end + 1);
+                
+                // Extract tag name
+                let tagName = '';
+                let j = 1; // Skip '<'
+                while (j < tag.length && !/[\s/>]/.test(tag[j])) {
+                    tagName += tag[j];
+                    j++;
+                }
+                tagName = tagName.toLowerCase();
+                
+                result += indent.repeat(level) + tag + '\n';
+                
+                // Check if self-closing
+                const isSelfClosing = selfClosingTags.has(tagName);
+                
+                if (!isSelfClosing) {
+                    level++;
+                }
+                
+                i = end + 1;
+                continue;
             }
-            tagName = tagName.toLowerCase();
-
-            // Check if next token is text
-            const nextToken = i + 1 < tokens.length ? tokens[i + 1] : '';
-            const nextIsText = nextToken && !nextToken.startsWith('<');
-
-            // Add the opening tag
-            result += indent.repeat(level) + token;
-
-            if (nextIsText) {
-                // Text content follows - add it on same line
-                result += nextToken;
-                i++; // Skip next token
-                // Don't add newline yet - closing tag will handle it
-            } else {
-                result += '\n';
-            }
-
-            // Increase indent for children (but not for structural tags)
-            if (!isSelfClosing && !structuralTags.includes(tagName)) {
-                level++;
-            }
-            continue;
         }
 
-        // Standalone text (shouldn't happen if we consumed it above)
-        result += indent.repeat(level) + token + '\n';
+        // Text content
+        let text = '';
+        while (i < len && html[i] !== '<') {
+            text += html[i];
+            i++;
+        }
+        
+        text = text.trim();
+        if (text) {
+            result += indent.repeat(level) + text + '\n';
+        }
     }
-
-    // Cleanup
-    result = result.replace(/\n{3,}/g, '\n\n');
-    result = result.replace(/ +$/gm, '');
 
     return result.trim() + '\n';
 }
