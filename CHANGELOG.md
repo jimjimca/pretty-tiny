@@ -2,8 +2,31 @@
 
 All notable changes to the "Pretty Tiny" extension will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.1.0] - 2025-11-23
+
+### Added
+- **HTML Support** - Full HTML minification and beautification
+- Smart inline detection - Elements with direct text stay on one line (e.g., `<p>Text</p>`)
+- Block formatting for nested structures with proper indentation
+- Special tag preservation:
+  - `<script>` tags with normalized JavaScript indentation
+  - `<pre>` tags preserved exactly as written
+  - `<textarea>` content preserved with spacing
+  - `<style>` tags with automatic CSS formatting
+- SVG support for both inline and block elements
+- HTML5 element support (`<video>`, `<audio>`, `<details>`, `<dialog>`, etc.)
+- Self-closing tag detection (HTML and SVG)
+- Whitespace preservation in some cases
+- Comment preservation in Pretty mode
+- HTML entity support (`&nbsp;`, `&copy;`, etc.)
+
+### Improved
+- Mode indicator now shows language-specific status (CSS/HTML)
+- Auto-format on save works for both CSS and HTML files
+- Better handling of mixed content (text + nested tags)
+
+### Changed
+- Changed Mini mode name to Tiny mode
 
 ## [1.0.9] - 2025-11-21
 
@@ -78,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.1.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.0
 [1.0.9]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.9
 [1.0.8]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.8
 [1.0.7]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.7

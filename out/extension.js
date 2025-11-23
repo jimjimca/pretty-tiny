@@ -54,8 +54,8 @@ function activate(context) {
             edit.replace(document.uri, fullRange, beautified);
             event.waitUntil(vscode.workspace.applyEdit(edit));
         }
-        else if (mode === 'mini') {
-            // Auto-minify on save when in mini mode
+        else if (mode === 'tiny') {
+            // Auto-minify on save when in Tiny mode
             const removeComments = config.get('removeComments', true);
             const minified = document.languageId === 'css'
                 ? (0, css_1.minifyCSS)(text, removeComments)
@@ -66,7 +66,7 @@ function activate(context) {
         }
     }));
     // Command: Minify
-    let miniCommand = vscode.commands.registerCommand('pretty-tiny.mini', async () => {
+    let tinyCommand = vscode.commands.registerCommand('pretty-tiny.tiny', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor)
             return;
@@ -90,9 +90,9 @@ function activate(context) {
         await editor.edit((editBuilder) => {
             editBuilder.replace(range, minified);
         });
-        // Set mode to mini
+        // Set mode to Tiny
         const fileUri = document.uri.toString();
-        fileModes.set(fileUri, 'mini');
+        fileModes.set(fileUri, 'tiny');
         saveFileModes();
         updateStatusBar();
         vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
@@ -152,8 +152,8 @@ function activate(context) {
         // Get current mode
         const defaultMode = config.get('defaultMode', 'auto');
         const currentMode = fileModes.get(fileUri) || defaultMode;
-        // Toggle logic: mini → pretty, (pretty or auto) → mini
-        if (currentMode === 'mini') {
+        // Toggle logic: tiny → pretty, (pretty or auto) → tiny
+        if (currentMode === 'tiny') {
             // Switch to pretty
             const beautified = language === 'css'
                 ? (0, css_1.beautifyCSS)(text, indentSize)
@@ -167,14 +167,14 @@ function activate(context) {
             vscode.window.showInformationMessage(`${language.toUpperCase()} beautified`);
         }
         else {
-            // Switch to mini (from pretty or auto)
+            // Switch to tiny (from pretty or auto)
             const minified = language === 'css'
                 ? (0, css_1.minifyCSS)(text, removeComments)
                 : (0, html_1.minifyHTML)(text, removeComments);
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
-            fileModes.set(fileUri, 'mini');
+            fileModes.set(fileUri, 'tiny');
             saveFileModes();
             updateStatusBar();
             vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
@@ -196,7 +196,7 @@ function activate(context) {
         const fileUri = editor.document.uri.toString();
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const currentMode = fileModes.get(fileUri) || config.get('defaultMode', 'auto');
-        const choice = await vscode.window.showInformationMessage(`Current: ${getModeLabel(currentMode)}. Select new mode:`, 'Pretty', 'Mini', 'Normal');
+        const choice = await vscode.window.showInformationMessage(`Current: ${getModeLabel(currentMode)}. Select new mode:`, 'Pretty', 'Tiny', 'Normal');
         if (!choice) {
             return;
         }
@@ -204,8 +204,8 @@ function activate(context) {
         if (choice === 'Pretty') {
             selectedMode = 'pretty';
         }
-        else if (choice === 'Mini') {
-            selectedMode = 'mini';
+        else if (choice === 'Tiny') {
+            selectedMode = 'tiny';
         }
         else {
             selectedMode = 'auto';
@@ -224,9 +224,9 @@ function activate(context) {
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, beautified);
             });
-            vscode.window.showInformationMessage(`Pretty Mode (${language.toUpperCase()} beautified)`);
+            vscode.window.showInformationMessage(`${language.toUpperCase()} beautified`);
         }
-        else if (selectedMode === 'mini') {
+        else if (selectedMode === 'tiny') {
             const document = editor.document;
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
@@ -237,13 +237,13 @@ function activate(context) {
             await editor.edit((editBuilder) => {
                 editBuilder.replace(range, minified);
             });
-            vscode.window.showInformationMessage(`Mini Mode (${language.toUpperCase()} minified)`);
+            vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
         }
         else {
             vscode.window.showInformationMessage('Normal Mode');
         }
     });
-    context.subscriptions.push(miniCommand, prettyCommand, toggleCommand, setModeCommand);
+    context.subscriptions.push(tinyCommand, prettyCommand, toggleCommand, setModeCommand);
 }
 exports.activate = activate;
 function saveFileModes() {
@@ -256,7 +256,7 @@ function saveFileModes() {
 function getModeLabel(mode) {
     const labels = {
         pretty: 'Pretty',
-        mini: 'Mini',
+        tiny: 'Tiny',
         auto: 'Normal',
     };
     return labels[mode] || 'Normal';
@@ -281,7 +281,7 @@ function updateStatusBar() {
     }
     const labels = {
         pretty: 'Pretty',
-        mini: 'Mini',
+        tiny: 'Tiny',
         auto: 'Normal',
     };
     // Show language in status bar

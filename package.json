@@ -1,7 +1,7 @@
 {
     "name": "pretty-tiny",
     "displayName": "Pretty Tiny",
-    "description": "Minify and beautify HTML/CSS - Automatic toggle with Pretty mode",
+    "description": "Quickly switch between compressed and readable HTML/CSS",
     "version": "1.0.9",
     "publisher": "jimjimca",
     "icon": "pretty-tiny.png",
@@ -15,13 +15,14 @@
     "homepage": "https://github.com/jimjimca/pretty-tiny#readme",
     "keywords": [
         "css",
+        "html",
         "minify",
-        "beautify",
-        "formatter",
         "minifier",
+        "beautify",
+        "prettify",
+        "formatter",
         "compress",
-        "pretty",
-        "tiny"
+        "web-development"
     ],
     "engines": {
         "vscode": "^1.60.0"
@@ -38,7 +39,7 @@
     "contributes": {
         "commands": [
             {
-                "command": "pretty-tiny.mini",
+                "command": "pretty-tiny.tiny",
                 "title": "Pretty Tiny: Minify"
             },
             {
@@ -47,11 +48,11 @@
             },
             {
                 "command": "pretty-tiny.toggle",
-                "title": "Pretty Tiny: Toggle Pretty/Mini"
+                "title": "Pretty Tiny: Toggle Pretty/Tiny"
             },
             {
                 "command": "pretty-tiny.setMode",
-                "title": "Pretty Tiny: Change Mode (Pretty/Mini/Auto)"
+                "title": "Pretty Tiny: Change Mode (Pretty/Tiny/Auto)"
             }
         ],
         "keybindings": [
@@ -84,14 +85,14 @@
                     "type": "string",
                     "enum": [
                         "pretty",
-                        "mini",
+                        "tiny",
                         "auto"
                     ],
                     "default": "pretty",
                     "description": "Default mode for HTML/CSS files when opened for the first time",
                     "enumDescriptions": [
                         "Pretty: Beautify on save",
-                        "Mini: Keep minified",
+                        "Tiny: Keep minified",
                         "Normal: No automatic processing"
                     ]
                 }

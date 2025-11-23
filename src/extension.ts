@@ -3,7 +3,7 @@ import { beautifyCSS, minifyCSS } from './formatters/css';
 import { beautifyHTML, minifyHTML } from './formatters/html';
 
 // Global state for file modes
-const fileModes = new Map<string, 'pretty' | 'mini' | 'auto'>();
+const fileModes = new Map<string, 'pretty' | 'tiny' | 'auto'>();
 let statusBarItem: vscode.StatusBarItem;
 let workspaceState: vscode.Memento;
 
@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
     workspaceState = context.workspaceState;
     
     // Load saved file modes from workspace state
-    const savedModes = workspaceState.get<Record<string, 'pretty' | 'mini' | 'auto'>>('fileModes', {});
+    const savedModes = workspaceState.get<Record<string, 'pretty' | 'tiny' | 'auto'>>('fileModes', {});
     for (const [uri, mode] of Object.entries(savedModes)) {
         fileModes.set(uri, mode);
     }
@@ -49,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!autoBeautify) return;
 
             const fileUri = document.uri.toString();
-            const mode = fileModes.get(fileUri) || config.get<'pretty' | 'mini' | 'auto'>('defaultMode', 'auto');
+            const mode = fileModes.get(fileUri) || config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
 
             const fullRange = getFullDocumentRange(document);
             const text = document.getText();
@@ -64,8 +64,8 @@ export function activate(context: vscode.ExtensionContext) {
                 const edit = new vscode.WorkspaceEdit();
                 edit.replace(document.uri, fullRange, beautified);
                 event.waitUntil(vscode.workspace.applyEdit(edit));
-            } else if (mode === 'mini') {
-                // Auto-minify on save when in mini mode
+            } else if (mode === 'tiny') {
+                // Auto-minify on save when in Tiny mode
                 const removeComments = config.get<boolean>('removeComments', true);
                 const minified = document.languageId === 'css'
                     ? minifyCSS(text, removeComments)
@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Command: Minify
-    let miniCommand = vscode.commands.registerCommand('pretty-tiny.mini', async () => {
+    let tinyCommand = vscode.commands.registerCommand('pretty-tiny.tiny', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
 
@@ -109,9 +109,9 @@ export function activate(context: vscode.ExtensionContext) {
             editBuilder.replace(range, minified);
         });
 
-        // Set mode to mini
+        // Set mode to Tiny
         const fileUri = document.uri.toString();
-        fileModes.set(fileUri, 'mini');
+        fileModes.set(fileUri, 'tiny');
         saveFileModes();
         updateStatusBar();
 
@@ -185,11 +185,11 @@ export function activate(context: vscode.ExtensionContext) {
         const removeComments = config.get<boolean>('removeComments', true);
 
         // Get current mode
-        const defaultMode = config.get<'pretty' | 'mini' | 'auto'>('defaultMode', 'auto');
+        const defaultMode = config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
         const currentMode = fileModes.get(fileUri) || defaultMode;
 
-        // Toggle logic: mini → pretty, (pretty or auto) → mini
-        if (currentMode === 'mini') {
+        // Toggle logic: tiny → pretty, (pretty or auto) → tiny
+        if (currentMode === 'tiny') {
             // Switch to pretty
             const beautified = language === 'css'
                 ? beautifyCSS(text, indentSize)
@@ -204,7 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
             updateStatusBar();
             vscode.window.showInformationMessage(`${language.toUpperCase()} beautified`);
         } else {
-            // Switch to mini (from pretty or auto)
+            // Switch to tiny (from pretty or auto)
             const minified = language === 'css'
                 ? minifyCSS(text, removeComments)
                 : minifyHTML(text, removeComments);
@@ -213,7 +213,7 @@ export function activate(context: vscode.ExtensionContext) {
                 editBuilder.replace(range, minified);
             });
 
-            fileModes.set(fileUri, 'mini');
+            fileModes.set(fileUri, 'tiny');
             saveFileModes();
             updateStatusBar();
             vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
@@ -238,12 +238,12 @@ export function activate(context: vscode.ExtensionContext) {
 
         const fileUri = editor.document.uri.toString();
         const config = vscode.workspace.getConfiguration('prettyTiny');
-        const currentMode = fileModes.get(fileUri) || config.get<'pretty' | 'mini' | 'auto'>('defaultMode', 'auto');
+        const currentMode = fileModes.get(fileUri) || config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
 
         const choice = await vscode.window.showInformationMessage(
             `Current: ${getModeLabel(currentMode)}. Select new mode:`,
             'Pretty',
-            'Mini',
+            'Tiny',
             'Normal',
         );
 
@@ -251,11 +251,11 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        let selectedMode: 'pretty' | 'mini' | 'auto';
+        let selectedMode: 'pretty' | 'tiny' | 'auto';
         if (choice === 'Pretty') {
             selectedMode = 'pretty';
-        } else if (choice === 'Mini') {
-            selectedMode = 'mini';
+        } else if (choice === 'Tiny') {
+            selectedMode = 'tiny';
         } else {
             selectedMode = 'auto';
         }
@@ -277,8 +277,8 @@ export function activate(context: vscode.ExtensionContext) {
                 editBuilder.replace(range, beautified);
             });
 
-            vscode.window.showInformationMessage(`Pretty Mode (${language.toUpperCase()} beautified)`);
-        } else if (selectedMode === 'mini') {
+            vscode.window.showInformationMessage(`${language.toUpperCase()} beautified`);
+        } else if (selectedMode === 'tiny') {
             const document = editor.document;
             const range = getFullDocumentRange(document);
             const text = document.getText(range);
@@ -291,17 +291,17 @@ export function activate(context: vscode.ExtensionContext) {
                 editBuilder.replace(range, minified);
             });
 
-            vscode.window.showInformationMessage(`Mini Mode (${language.toUpperCase()} minified)`);
+            vscode.window.showInformationMessage(`${language.toUpperCase()} minified`);
         } else {
             vscode.window.showInformationMessage('Normal Mode');
         }
     });
 
-    context.subscriptions.push(miniCommand, prettyCommand, toggleCommand, setModeCommand);
+    context.subscriptions.push(tinyCommand, prettyCommand, toggleCommand, setModeCommand);
 }
 
 function saveFileModes() {
-    const modesToSave: Record<string, 'pretty' | 'mini' | 'auto'> = {};
+    const modesToSave: Record<string, 'pretty' | 'tiny' | 'auto'> = {};
     fileModes.forEach((mode, uri) => {
         modesToSave[uri] = mode;
     });
@@ -311,7 +311,7 @@ function saveFileModes() {
 function getModeLabel(mode: string): string {
     const labels = {
         pretty: 'Pretty',
-        mini: 'Mini',
+        tiny: 'Tiny',
         auto: 'Normal',
     };
     return labels[mode as keyof typeof labels] || 'Normal';
@@ -330,7 +330,7 @@ function updateStatusBar() {
     
     // Get default mode from settings
     const config = vscode.workspace.getConfiguration('prettyTiny');
-    const defaultMode = config.get<'pretty' | 'mini' | 'auto'>('defaultMode', 'auto');
+    const defaultMode = config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
     
     // Get mode for this file, or use default
     const mode = fileModes.get(fileUri) || defaultMode;
@@ -343,7 +343,7 @@ function updateStatusBar() {
 
     const labels = {
         pretty: 'Pretty',
-        mini: 'Mini',
+        tiny: 'Tiny',
         auto: 'Normal',
     };
 
