@@ -1,18 +1,19 @@
 # Pretty Tiny
 
-Instant toggle between minified and beautified HTML/CSS — a code formatter for dev and production workflows.
+Instant toggle between minified and beautified HTML/CSS. 
+A code formatter for dev and production workflows.
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/jimjimca.pretty-tiny)](https://marketplace.visualstudio.com/items?itemName=jimjimca.pretty-tiny)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/jimjimca.pretty-tiny)](https://marketplace.visualstudio.com/items?itemName=jimjimca.pretty-tiny)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/jimjimca.pretty-tiny)](https://marketplace.visualstudio.com/items?itemName=jimjimca.pretty-tiny)
 [![License](https://img.shields.io/github/license/jimjimca/pretty-tiny)](LICENSE)
 
-Perfect for development **Pretty** and production **Tiny**.  
+Perfect for **Pretty** development and **Tiny** production.  
 Fast. Lightweight. Zero dependencies.
 Supports **format on save** to keep your code readable automatically.
 
-**Pretty** = Readable code for development
-**Tiny** = Compressed code for production
+- **Pretty** = Readable code for development.
+- **Tiny** = Compressed code for production.
 
 ## Why Pretty Tiny?
 
@@ -154,24 +155,20 @@ Access settings in **File > Preferences > Settings** (or **Code > Preferences > 
 ```css
 body,
 html {
+    
     margin: 0;
     padding: 0;
 }
-*,
-*::before,
-*::after {
+*,*::before,*::after {
     box-sizing: border-box;
 }
-.container:has(> section:target) section:not(:target) {
+.container:has( > section:target) section:not(:target) {
     opacity: 0.5;
 }
-&:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+&:hover {box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);}
+
 @media screen and (max-width: 768px) {
-    body {
-        font-size: 14px;
-    }
+    body {font-size: 14px; color:rebeccapurple;}
 }
 ```
 
@@ -187,7 +184,7 @@ body, html {
     box-sizing: border-box;
 }
 
-.container:has(> section:target) section:not(:target) {
+.container:has( > section:target) section:not(:target) {
     opacity: 0.5;
 }
 
@@ -198,6 +195,7 @@ body, html {
 @media screen and (max-width: 768px) {
     body {
         font-size: 14px;
+        color: rebeccapurple;
     }
 }
 ```
@@ -205,7 +203,7 @@ body, html {
 #### After Tiny Mode
 
 ```css
-body,html{margin:0;padding:0}*,*::before,*::after{box-sizing:border-box}.container:has(>section:target) section:not(:target){opacity:0.5}&:hover{box-shadow:0 4px 12px rgba(0,0,0,0.15)}@media screen and (max-width:768px){body{font-size:14px}}
+body,html{margin:0;padding:0}*,*::before,*::after{box-sizing:border-box}.container:has(>section:target) section:not(:target){opacity:0.5}&:hover{box-shadow:0 4px 12px rgba(0,0,0,0.15)}@media screen and (max-width:768px){body{font-size:14px;color:rebeccapurple}}
 ```
 
 ### HTML
