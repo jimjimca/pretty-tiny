@@ -2,7 +2,7 @@
     "name": "pretty-tiny",
     "displayName": "Pretty Tiny",
     "description": "Quickly switch between compressed and readable HTML/CSS",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "publisher": "jimjimca",
     "icon": "pretty-tiny.png",
     "repository": {
