@@ -33,7 +33,8 @@
     "license": "MIT",
     "activationEvents": [
         "onLanguage:css",
-        "onLanguage:html"
+        "onLanguage:html",
+        "onLanguage:php"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -60,7 +61,7 @@
                 "command": "pretty-tiny.toggle",
                 "key": "ctrl+alt+m",
                 "mac": "ctrl+cmd+m",
-                "when": "editorTextFocus && (editorLangId == css || editorLangId == html)"
+                "when": "editorTextFocus && (editorLangId == css || editorLangId == html || editorLangId == php)"
             }
         ],
         "configuration": {
@@ -81,7 +82,7 @@
                     "default": true,
                     "description": "Automatically beautify on save when in Pretty mode"
                 },
-                "prettyTiny.defaultMode": {
+                "prettyTiny.defaultModeCSS": {
                     "type": "string",
                     "enum": [
                         "pretty",
@@ -89,12 +90,32 @@
                         "auto"
                     ],
                     "default": "pretty",
-                    "description": "Default mode for HTML/CSS files when opened for the first time",
+                    "description": "Default mode for CSS files when opened for the first time",
                     "enumDescriptions": [
                         "Pretty: Beautify on save",
                         "Tiny: Keep minified",
                         "Normal: No automatic processing"
                     ]
+                },
+                "prettyTiny.defaultModeHTML": {
+                    "type": "string",
+                    "enum": [
+                        "pretty",
+                        "tiny",
+                        "auto"
+                    ],
+                    "default": "pretty",
+                    "description": "Default mode for HTML files when opened for the first time",
+                    "enumDescriptions": [
+                        "Pretty: Beautify on save",
+                        "Tiny: Keep minified",
+                        "Normal: No automatic processing"
+                    ]
+                },
+                "prettyTiny.enablePHP": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable formatting support for PHP files (formats HTML within PHP files)"
                 }
             }
         }

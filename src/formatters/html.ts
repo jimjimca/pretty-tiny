@@ -7,6 +7,13 @@ const selfClosingTags = new Set([
 ]);
 
 export function minifyHTML(html: string, removeComments: boolean = true, indentSize: number = 4): string {
+    // Preserve PHP blocks FIRST (before anything else)
+    const phpBlocks: string[] = [];
+    html = html.replace(/<\?(?:php|=)[\s\S]*?\?>/gi, (match) => {
+        phpBlocks.push(match);
+        return `__PHP_${phpBlocks.length - 1}__`;
+    });
+
     let result = html;
 
     // Preserve <script> tags with their content
@@ -61,8 +68,13 @@ export function minifyHTML(html: string, removeComments: boolean = true, indentS
         result = result.replace(`__PRE_${index}__`, pre);
     });
 
-    textareas.forEach((textarea, index) => {  // ← FIX: Commentaire était "Restore <script> tags"
+    textareas.forEach((textarea, index) => {
         result = result.replace(`__TEXTAREA_${index}__`, textarea);
+    });
+
+    // Restore PHP blocks last
+    phpBlocks.forEach((php, index) => {
+        result = result.replace(`__PHP_${index}__`, php);
     });
 
     return result.trim();
@@ -100,13 +112,20 @@ function normalizeIndentation(content: string, targetIndent: string): string {
 }
 
 export function beautifyHTML(html: string, indentSize: number = 4): string {
+    // Preserve PHP blocks FIRST (before anything else)
+    const phpBlocks: string[] = [];
+    html = html.replace(/<\?(?:php|=)[\s\S]*?\?>/gi, (match) => {
+        phpBlocks.push(match);
+        return `__PHP_${phpBlocks.length - 1}__`;
+    });
+
     const indent = ' '.repeat(indentSize);
     let result = '';
     let level = 0;
-    
+
     let i = 0;
     const len = html.length;
-    
+
     // Skip whitespace
     function skipWhitespace() {
         while (i < len && /\s/.test(html[i])) {
@@ -129,6 +148,8 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
     function hasDirectText(startPos: number, tagName: string): boolean {
         let pos = startPos;
         const openTags: string[] = [];
+        let placeholderCount = 0;
+        let hasOtherContent = false;
         
         while (pos < len) {
             if (/\s/.test(html[pos])) {
@@ -142,7 +163,8 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
                 const closeTagName = html.substring(pos + 2, closeEnd).trim().toLowerCase();
                 
                 if (openTags.length === 0 && closeTagName === tagName) {
-                    return false;
+                    // Only inline if exactly 1 placeholder and nothing else
+                    return placeholderCount === 1 && !hasOtherContent;
                 }
                 
                 if (openTags.length > 0 && openTags[openTags.length - 1] === closeTagName) {
@@ -155,6 +177,7 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
             
             // Opening tag
             if (html[pos] === '<') {
+                hasOtherContent = true;  // Found a tag
                 const openEnd = html.indexOf('>', pos);
                 const openTag = html.substring(pos, openEnd + 1);
                 const openTagName = extractTagName(openTag);
@@ -167,15 +190,26 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
                 continue;
             }
             
-            // Direct text found at depth 0
+            // Text or placeholder at depth 0
             if (openTags.length === 0) {
+                // PHP placeholder
+                if (html.substring(pos).startsWith('__PHP_')) {
+                    placeholderCount++;
+                    const endPlaceholder = html.indexOf('__', pos + 6);
+                    if (endPlaceholder !== -1) {
+                        pos = endPlaceholder + 2;
+                        continue;
+                    }
+                }
+                
+                // Real text found
                 return true;
             }
             
             pos++;
         }
         
-        return false;
+        return placeholderCount === 1 && !hasOtherContent;
     }
 
     // Collect content until closing tag
@@ -253,7 +287,18 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
                 continue;
             }
         }
-        
+
+        // PHP placeholder
+        if (html.substring(i).startsWith('__PHP_')) {
+            const endPlaceholder = html.indexOf('__', i + 6);
+            if (endPlaceholder !== -1) {
+                const placeholder = html.substring(i, endPlaceholder + 2);
+                result += indent.repeat(level) + placeholder + '\n';
+                i = endPlaceholder + 2;
+                continue;
+            }
+        }
+
         // Closing tag
         if (html.substring(i, i + 2) === '</') {
             level = Math.max(0, level - 1);
@@ -390,12 +435,17 @@ export function beautifyHTML(html: string, indentSize: number = 4): string {
             text += html[i];
             i++;
         }
-        
+
         text = text.trim();
         if (text) {
             result += indent.repeat(level) + text + '\n';
         }
     }
-    
+
+    // Restore PHP blocks last
+    phpBlocks.forEach((php, index) => {
+        result = result.replace(`__PHP_${index}__`, php);
+    });
+
     return result.trim() + '\n';
 }

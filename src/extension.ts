@@ -14,6 +14,16 @@ function getFullDocumentRange(document: vscode.TextDocument): vscode.Range {
     return new vscode.Range(firstLine.range.start, lastLine.range.end);
 }
 
+// Helper function ro get supported language
+function isLanguageSupported(languageId: string): boolean {
+    if (languageId === 'css' || languageId === 'html') return true;
+    
+    const config = vscode.workspace.getConfiguration('prettyTiny');
+    const enablePHP = config.get<boolean>('enablePHP', false);
+    
+    return enablePHP && languageId === 'php';
+}
+
 export function activate(context: vscode.ExtensionContext) {
     // Store workspace state
     workspaceState = context.workspaceState;
@@ -41,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
             const document = event.document;
 
             // Check if it's a CSS or HTML file
-            if (document.languageId !== 'css' && document.languageId !== 'html') return;
+            if(!isLanguageSupported(document.languageId)) return;
 
             const config = vscode.workspace.getConfiguration('prettyTiny');
             const autoBeautify = config.get<boolean>('autoBeautifyOnSave', true);
@@ -49,7 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
             if (!autoBeautify) return;
 
             const fileUri = document.uri.toString();
-            const mode = fileModes.get(fileUri) || config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
+            const defaultModeKey = document.languageId === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+            const mode = fileModes.get(fileUri) || config.get<'pretty' | 'tiny' | 'auto'>(defaultModeKey, 'auto');
 
             const fullRange = getFullDocumentRange(document);
             const text = document.getText();
@@ -84,10 +95,10 @@ export function activate(context: vscode.ExtensionContext) {
         if (!editor) return;
 
         const document = editor.document;
-        const language = document.languageId;
-        
+        const language = document.languageId === 'php' ? 'html' : document.languageId;
+
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
+        if(!isLanguageSupported(document.languageId)) {
             vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
@@ -101,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
         const removeComments = config.get<boolean>('removeComments', true);
 
         // Minify based on language
-        const minified = language === 'css' 
+        const minified = language === 'css'
             ? minifyCSS(text, removeComments)
             : minifyHTML(text, removeComments);
 
@@ -124,10 +135,10 @@ export function activate(context: vscode.ExtensionContext) {
         if (!editor) return;
 
         const document = editor.document;
-        const language = document.languageId;
-        
+        const language = document.languageId === 'php' ? 'html' : document.languageId;
+
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
+        if(!isLanguageSupported(document.languageId)) {
             vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
@@ -166,10 +177,10 @@ export function activate(context: vscode.ExtensionContext) {
         if (!editor) return;
 
         const document = editor.document;
-        const language = document.languageId;
-        
+        const language = document.languageId === 'php' ? 'html' : document.languageId;
+
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
+        if(!isLanguageSupported(document.languageId)){
             vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
@@ -185,7 +196,8 @@ export function activate(context: vscode.ExtensionContext) {
         const removeComments = config.get<boolean>('removeComments', true);
 
         // Get current mode
-        const defaultMode = config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
+        const defaultModeKey = language === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+        const defaultMode = config.get<'pretty' | 'tiny' | 'auto'>(defaultModeKey, 'auto');
         const currentMode = fileModes.get(fileUri) || defaultMode;
 
         // Toggle logic: tiny → pretty, (pretty or auto) → tiny
@@ -228,17 +240,18 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const language = editor.document.languageId;
-        
+        const language = editor.document.languageId === 'php' ? 'html' : editor.document.languageId;
+
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
-            vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
+        if(!isLanguageSupported(editor.document.languageId)){
+            vscode.window.showWarningMessage('Pretty Tiny only supports CSS, HTML, and PHP files');
             return;
         }
 
         const fileUri = editor.document.uri.toString();
         const config = vscode.workspace.getConfiguration('prettyTiny');
-        const currentMode = fileModes.get(fileUri) || config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
+        const defaultModeKey = language === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+        const currentMode = fileModes.get(fileUri) || config.get<'pretty' | 'tiny' | 'auto'>(defaultModeKey, 'auto');
 
         const choice = await vscode.window.showInformationMessage(
             `Current: ${getModeLabel(currentMode)}. Select new mode:`,
@@ -321,17 +334,18 @@ function updateStatusBar() {
     const editor = vscode.window.activeTextEditor;
 
     // Show status bar only for CSS and HTML files
-    if (!editor || (editor.document.languageId !== 'css' && editor.document.languageId !== 'html')) {
+    if (!editor || (!isLanguageSupported(editor.document.languageId))) {
         statusBarItem.hide();
         return;
     }
 
     const fileUri = editor.document.uri.toString();
-    
+
     // Get default mode from settings
     const config = vscode.workspace.getConfiguration('prettyTiny');
-    const defaultMode = config.get<'pretty' | 'tiny' | 'auto'>('defaultMode', 'auto');
-    
+    const defaultModeKey = editor.document.languageId === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+    const defaultMode = config.get<'pretty' | 'tiny' | 'auto'>(defaultModeKey, 'auto');
+
     // Get mode for this file, or use default
     const mode = fileModes.get(fileUri) || defaultMode;
     

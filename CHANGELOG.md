@@ -2,10 +2,18 @@
 
 All notable changes to the "Pretty Tiny" extension will be documented in this file.
 
+## [1.1.1] - 2025-11-25
+
+### Added
+- HTML inside PHP files can be formatted if enabled in the configuration
+
+### Changed
+- Split default mode configuration for CSS and HTML
+
 ## [1.1.0] - 2025-11-23
 
 ### Added
-- **HTML Support** - Full HTML minification and beautification
+- **HTML Support** - Full HTML minificatioEn and beautification
 - Smart inline detection - Elements with direct text stay on one line (e.g., `<p>Text</p>`)
 - Block formatting for nested structures with proper indentation
 - Special tag preservation:
@@ -101,6 +109,7 @@ All notable changes to the "Pretty Tiny" extension will be documented in this fi
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.1.1]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.0
 [1.0.9]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.9
 [1.0.8]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.8

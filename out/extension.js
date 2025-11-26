@@ -14,6 +14,14 @@ function getFullDocumentRange(document) {
     const lastLine = document.lineAt(document.lineCount - 1);
     return new vscode.Range(firstLine.range.start, lastLine.range.end);
 }
+// Helper function ro get supported language
+function isLanguageSupported(languageId) {
+    if (languageId === 'css' || languageId === 'html')
+        return true;
+    const config = vscode.workspace.getConfiguration('prettyTiny');
+    const enablePHP = config.get('enablePHP', false);
+    return enablePHP && languageId === 'php';
+}
 function activate(context) {
     // Store workspace state
     workspaceState = context.workspaceState;
@@ -34,14 +42,15 @@ function activate(context) {
     context.subscriptions.push(vscode.workspace.onWillSaveTextDocument((event) => {
         const document = event.document;
         // Check if it's a CSS or HTML file
-        if (document.languageId !== 'css' && document.languageId !== 'html')
+        if (!isLanguageSupported(document.languageId))
             return;
         const config = vscode.workspace.getConfiguration('prettyTiny');
         const autoBeautify = config.get('autoBeautifyOnSave', true);
         if (!autoBeautify)
             return;
         const fileUri = document.uri.toString();
-        const mode = fileModes.get(fileUri) || config.get('defaultMode', 'auto');
+        const defaultModeKey = document.languageId === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+        const mode = fileModes.get(fileUri) || config.get(defaultModeKey, 'auto');
         const fullRange = getFullDocumentRange(document);
         const text = document.getText();
         // Apply formatting based on mode
@@ -71,9 +80,9 @@ function activate(context) {
         if (!editor)
             return;
         const document = editor.document;
-        const language = document.languageId;
+        const language = document.languageId === 'php' ? 'html' : document.languageId;
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
+        if (!isLanguageSupported(document.languageId)) {
             vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
@@ -103,9 +112,9 @@ function activate(context) {
         if (!editor)
             return;
         const document = editor.document;
-        const language = document.languageId;
+        const language = document.languageId === 'php' ? 'html' : document.languageId;
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
+        if (!isLanguageSupported(document.languageId)) {
             vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
@@ -135,9 +144,9 @@ function activate(context) {
         if (!editor)
             return;
         const document = editor.document;
-        const language = document.languageId;
+        const language = document.languageId === 'php' ? 'html' : document.languageId;
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
+        if (!isLanguageSupported(document.languageId)) {
             vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
             return;
         }
@@ -150,7 +159,8 @@ function activate(context) {
         const indentSize = config.get('indentSize', 4);
         const removeComments = config.get('removeComments', true);
         // Get current mode
-        const defaultMode = config.get('defaultMode', 'auto');
+        const defaultModeKey = language === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+        const defaultMode = config.get(defaultModeKey, 'auto');
         const currentMode = fileModes.get(fileUri) || defaultMode;
         // Toggle logic: tiny → pretty, (pretty or auto) → tiny
         if (currentMode === 'tiny') {
@@ -187,15 +197,16 @@ function activate(context) {
             vscode.window.showWarningMessage('Open a file first');
             return;
         }
-        const language = editor.document.languageId;
+        const language = editor.document.languageId === 'php' ? 'html' : editor.document.languageId;
         // Check if supported language
-        if (language !== 'css' && language !== 'html') {
-            vscode.window.showWarningMessage('Pretty Tiny only supports CSS and HTML files');
+        if (!isLanguageSupported(editor.document.languageId)) {
+            vscode.window.showWarningMessage('Pretty Tiny only supports CSS, HTML, and PHP files');
             return;
         }
         const fileUri = editor.document.uri.toString();
         const config = vscode.workspace.getConfiguration('prettyTiny');
-        const currentMode = fileModes.get(fileUri) || config.get('defaultMode', 'auto');
+        const defaultModeKey = language === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+        const currentMode = fileModes.get(fileUri) || config.get(defaultModeKey, 'auto');
         const choice = await vscode.window.showInformationMessage(`Current: ${getModeLabel(currentMode)}. Select new mode:`, 'Pretty', 'Tiny', 'Normal');
         if (!choice) {
             return;
@@ -264,14 +275,15 @@ function getModeLabel(mode) {
 function updateStatusBar() {
     const editor = vscode.window.activeTextEditor;
     // Show status bar only for CSS and HTML files
-    if (!editor || (editor.document.languageId !== 'css' && editor.document.languageId !== 'html')) {
+    if (!editor || (!isLanguageSupported(editor.document.languageId))) {
         statusBarItem.hide();
         return;
     }
     const fileUri = editor.document.uri.toString();
     // Get default mode from settings
     const config = vscode.workspace.getConfiguration('prettyTiny');
-    const defaultMode = config.get('defaultMode', 'auto');
+    const defaultModeKey = editor.document.languageId === 'css' ? 'defaultModeCSS' : 'defaultModeHTML';
+    const defaultMode = config.get(defaultModeKey, 'auto');
     // Get mode for this file, or use default
     const mode = fileModes.get(fileUri) || defaultMode;
     // Save the mode if it's not already set

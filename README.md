@@ -38,6 +38,7 @@ Supports **format on save** to keep your code readable automatically.
 -   **Special Tag Preservation** - `<script>`, `<pre>`, `<textarea>` content preserved exactly
 -   **CSS Formatting in `<style>`** - Automatically formats embedded CSS using Pretty Tiny
 -   **SVG Support** - Handles inline and block SVG elements
+-   **PHP Files** - Format your HTML/CSS inside PHP files
 
 ### General
 -   **Mode Memory** - Remembers formatting preference per file across sessions
@@ -115,7 +116,13 @@ Access settings in **File > Preferences > Settings** (or **Code > Preferences > 
     "prettyTiny.autoBeautifyOnSave": true,
 
     // Default mode for new CSS files (default: "pretty")
-    "prettyTiny.defaultMode": "pretty"
+    "prettyTiny.defaultModeCSS": "pretty",
+
+    // Default mode for new HTML files (default: "pretty")
+    "prettyTiny.defaultModeHTML": "pretty",
+
+    // Define if the format of HTML in PHP files is enabled
+    "prettyTiny.enablePHP":true
 }
 ```
 
@@ -139,12 +146,25 @@ Access settings in **File > Preferences > Settings** (or **Code > Preferences > 
 -   When enabled, code is automatically beautified on save in Pretty mode
 -   Default: `true`
 
-**`prettyTiny.defaultMode`**
+**`prettyTiny.defaultModeCSS`**
 
-- Sets the default mode for files when opened for the first time
+- Sets the default mode for CSS files when opened for the first time
 - Options: `"pretty"`, `"tiny"`, `"auto"`
 - Default: `"pretty"`
-- **Note:** Once you change a file's mode, that preference is remembered for that specific file
+
+**`prettyTiny.defaultModeHTML`**
+
+- Sets the default mode for HTML files when opened for the first time
+- Options: `"pretty"`, `"tiny"`, `"auto"`
+- Default: `"pretty"`
+
+**`prettyTiny.enablePHP`**
+
+- Enables the format of HTML inside PHP files
+- Options: `true`, `false`
+- Default: `true`
+
+**Note:** Once you change a file's mode, that preference is remembered for that specific file across sessions.
 
 ## Examples
 
@@ -270,6 +290,7 @@ body,html{margin:0;padding:0}*,*::before,*::after{box-sizing:border-box}.contain
     -   `<pre>` - Preformatted text preserved exactly
     -   `<textarea>` - Content preserved with spacing
     -   `<style>` - CSS automatically formatted
+    -   `<?php`, `<?`, `<?=` - PHP code is not formatted
 -   **SVG support** - Inline and block SVG elements
 -   **HTML5 elements** - `<video>`, `<audio>`, `<details>`, `<dialog>`, etc.
 -   **Self-closing tags** - Proper handling of `<img>`, `<br>`, `<input>`, etc.
