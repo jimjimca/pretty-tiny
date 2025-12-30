@@ -2,6 +2,11 @@
 
 All notable changes to the "Pretty Tiny" extension will be documented in this file.
 
+## [1.1.2] - 2025-12-30
+
+### Fixed
+- Fixed CSS comment handling
+
 ## [1.1.1] - 2025-11-25
 
 ### Added
@@ -109,6 +114,7 @@ All notable changes to the "Pretty Tiny" extension will be documented in this fi
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.1.2]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.2
 [1.1.1]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.0
 [1.0.9]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.0.9

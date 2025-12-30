@@ -193,11 +193,23 @@ export function beautifyCSS(css: string, indentSize: number = 4): string {
             result += ';';
             i++;
             
+            // Check if there's a comment after the semicolon
             let tempI = i;
+            let hasNewlineBeforeComment = false;
+            while (tempI < len && /[ \t\r]/.test(css[tempI])) {
+                tempI++;
+            }
+            if (tempI < len && css[tempI] === '\n') {
+                hasNewlineBeforeComment = true;
+            }
+            
+            // Skip to find if there's a comment
+            tempI = i;
             while (tempI < len && /\s/.test(css[tempI])) {
                 tempI++;
             }
-            const hasInlineComment = css.substring(tempI, tempI + 2) === '/*';
+            const hasComment = css.substring(tempI, tempI + 2) === '/*';
+            const hasInlineComment = hasComment && !hasNewlineBeforeComment;
             
             if (!hasInlineComment) {
                 result += '\n';
@@ -217,6 +229,10 @@ export function beautifyCSS(css: string, indentSize: number = 4): string {
             result += ', ';
             i++;
         }
+
+
+
+
         else if (char === '/' && i + 1 < len && css[i + 1] === '*') {
             const commentEnd = css.indexOf('*/', i + 2);
             if (commentEnd !== -1) {
@@ -228,8 +244,25 @@ export function beautifyCSS(css: string, indentSize: number = 4): string {
                 }
                 const followedBySemicolon = afterCommentIndex < len && css[afterCommentIndex] === ';';
                 
-                const lastNonSpace = result.trimEnd();
-                const isInline = lastNonSpace.length > 0 && !lastNonSpace.endsWith('\n');
+                // Check if result ends with newline (comment is on its own line)
+                const endsWithNewline = result.endsWith('\n');
+                const isInline = !endsWithNewline;
+                
+                // Check if there was a blank line before this comment in the original
+                let blankLinesBefore = 0;
+                let checkIndex = i - 1;
+                let foundContent = false;
+                while (checkIndex >= 0 && !foundContent) {
+                    if (css[checkIndex] === '\n') {
+                        blankLinesBefore++;
+                        checkIndex--;
+                    } else if (/\s/.test(css[checkIndex])) {
+                        checkIndex--;
+                    } else {
+                        foundContent = true;
+                    }
+                }
+                const hasBlankLineBefore = blankLinesBefore >= 2;
                 
                 if (isInline) {
                     if (!result.endsWith(' ')) {
@@ -256,19 +289,33 @@ export function beautifyCSS(css: string, indentSize: number = 4): string {
                         result += '\n';
                     }
                     
-                    const commentIndent = indentLevel > 0 ? indent.repeat(indentLevel) : '';
-                    result += commentIndent + comment + '\n';
+                    // Add blank line before comment if it was there in the original
+                    if (hasBlankLineBefore && !result.endsWith('\n\n')) {
+                        result += '\n';
+                    }
                     
-                    if (indentLevel > 0) {
+                    // Add indentation before the comment
+                    result += indent.repeat(indentLevel) + comment + '\n';
+
+                    
+                    // Skip whitespace after comment
+                    i = commentEnd + 2;
+                    while (i < len && /\s/.test(css[i])) {
+                        i++;
+                    }
+                    
+                    // Add indent for next line if not closing brace
+                    if (i < len && css[i] !== '}') {
                         result += indent.repeat(indentLevel);
                     }
-                    i = commentEnd + 2;
                 }
             } else {
                 result += char;
                 i++;
             }
         }
+
+
         else {
             if (result.endsWith('\n')) {
                 result += indent.repeat(indentLevel);
