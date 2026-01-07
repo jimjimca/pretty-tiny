@@ -2,6 +2,11 @@
 
 All notable changes to the "Pretty Tiny" extension will be documented in this file.
 
+## [1.1.3] - 2026-01-07
+
+### Added
+- Added less used self-closing tags
+
 ## [1.1.2] - 2025-12-30
 
 ### Fixed
