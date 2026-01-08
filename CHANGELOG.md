@@ -2,6 +2,11 @@
 
 All notable changes to the "Pretty Tiny" extension will be documented in this file.
 
+## [1.1.4] - 2026-01-08
+
+### Fixed
+- Case sensitivity issue fixed with newly added self-closing tags
+
 ## [1.1.3] - 2026-01-07
 
 ### Added
@@ -119,6 +124,8 @@ All notable changes to the "Pretty Tiny" extension will be documented in this fi
 - `prettyTiny.removeComments` - Remove comments when minifying
 - `prettyTiny.autoBeautifyOnSave` - Auto-beautify on save in Pretty mode
 
+[1.1.4]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.4
+[1.1.3]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.3
 [1.1.2]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.2
 [1.1.1]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.1
 [1.1.0]: https://github.com/jimjimca/pretty-tiny/releases/tag/v1.1.0
