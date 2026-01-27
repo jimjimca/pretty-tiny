@@ -7,21 +7,78 @@ export function minifyCSS(css: string, removeComments: boolean = true): string {
         result = result.replace(/\/\*[\s\S]*?\*\//g, '');
     }
 
+    const protectedZones: Array<{start: number, end: number, content: string}> = [];
+    const functionsToProtect = /\b(calc|clamp|min|max)\s*\(/gi;
+    let match;
+    
+    while ((match = functionsToProtect.exec(result)) !== null) {
+        let depth = 1;
+        let startIndex = match.index;
+        let i = match.index + match[0].length;
+        
+        while (i < result.length && depth > 0) {
+            if (result[i] === '(') depth++;
+            else if (result[i] === ')') depth--;
+            i++;
+        }
+        
+        if (depth === 0) {
+            protectedZones.push({
+                start: startIndex,
+                end: i,
+                content: result.substring(startIndex, i)
+            });
+        }
+    }
+
+    const placeholders: string[] = [];
+    for (let i = protectedZones.length - 1; i >= 0; i--) {
+        const zone = protectedZones[i];
+        const placeholder = `__PROTECTED_${i}__`;
+        placeholders[i] = zone.content;
+        result = result.substring(0, zone.start) + placeholder + result.substring(zone.end);
+    }
+
     result = result.replace(/\s+/g, ' ');
     result = result.replace(/\s*{\s*/g, '{');
     result = result.replace(/\s*}\s*/g, '}');
     result = result.replace(/\s*:\s*/g, ':');
     result = result.replace(/\s*;\s*/g, ';');
     result = result.replace(/\s*,\s*/g, ',');
-    result = result.replace(/\s*>\s*/g, '>');
-    result = result.replace(/\s*\+\s*/g, '+');
-    result = result.replace(/\s*~\s*/g, '~');
+    
+    result = result.replace(/\s*>\s*/g, ' > ');
+    result = result.replace(/\s*\+\s*/g, ' + ');
+    result = result.replace(/\s*~\s*/g, ' ~ ');
+    result = result.replace(/\s*<\s*/g, ' < ');
+    
     result = result.replace(/;}/g, '}');
     result = result.trim();
+
+    for (let i = 0; i < placeholders.length; i++) {
+        const minifiedProtected = minifyProtectedZone(placeholders[i]);
+        result = result.replace(`__PROTECTED_${i}__`, minifiedProtected);
+    }
+
+    result = result.replace(/\s{2,}/g, ' ');
 
     return result;
 }
 
+function minifyProtectedZone(zone: string): string {
+    let result = zone;
+
+    result = result.replace(/\s+/g, ' ');
+
+    result = result.replace(/\s*,\s*/g, ',');
+    result = result.replace(/\s*:\s*/g, ':');
+
+    result = result.replace(/\(\s*(?![+\-*/])\s*/g, '(');
+    result = result.replace(/\s*(?<![+\-*/])\)/g, ')');
+
+    result = result.trim();
+
+    return result;
+}
 export function beautifyCSS(css: string, indentSize: number = 4): string {
     // Size safeguard - skip beautification for very large files
     if (css.length > 500000) {
